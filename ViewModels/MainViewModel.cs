@@ -5,10 +5,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ProjectHub.App.Models;
-using ProjectHub.App.Services;
+using Sleipnir.App.Models;
+using Sleipnir.App.Services;
 
-namespace ProjectHub.App.ViewModels
+namespace Sleipnir.App.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
@@ -117,6 +117,9 @@ namespace ProjectHub.App.ViewModels
         [ObservableProperty]
         private bool _showHubArchive;
 
+        [ObservableProperty]
+        private Issue? _plannedIssue;
+
         public MainViewModel(IDataService dataService)
         {
             _dataService = dataService;
@@ -131,7 +134,7 @@ namespace ProjectHub.App.ViewModels
             
             ShowLogsCommand = new AsyncRelayCommand<Issue>(ShowLogsAsync);
             CompleteSprintCommand = new AsyncRelayCommand(CompleteSprintAsync);
-            AssignToSprintCommand = new AsyncRelayCommand<Issue>(AssignToSprintAsync);
+            AssignToSprintCommand = new AsyncRelayCommand<Sprint>(AssignToSpecificSprintAsync);
             ToggleArchiveCommand = new RelayCommand(() => IsArchiveVisible = !IsArchiveVisible);
             ToggleHubArchiveCommand = new RelayCommand(() => { ShowHubArchive = !ShowHubArchive; RefreshCategorizedIssues(); });
             RestoreIssueCommand = new AsyncRelayCommand<Issue>(RestoreIssueAsync);
@@ -146,6 +149,7 @@ namespace ProjectHub.App.ViewModels
 
             OpenIssueDetailCommand = new RelayCommand<Issue>(OpenIssueDetail);
             ToggleViewModeCommand = new RelayCommand(() => IsCompactView = !IsCompactView);
+            SetPlannedIssueCommand = new RelayCommand<Issue>(issue => PlannedIssue = issue);
 
             OpenProjectModalCommand = new RelayCommand(OpenProjectModal);
             EditProjectModalCommand = new RelayCommand(OpenEditProjectModal);
@@ -175,7 +179,7 @@ namespace ProjectHub.App.ViewModels
         
         public IAsyncRelayCommand<Issue> ShowLogsCommand { get; }
         public IAsyncRelayCommand CompleteSprintCommand { get; }
-        public IAsyncRelayCommand<Issue> AssignToSprintCommand { get; }
+        public IAsyncRelayCommand<Sprint> AssignToSprintCommand { get; }
         public IRelayCommand ToggleArchiveCommand { get; }
         public IAsyncRelayCommand DeleteSprintCommand { get; }
         public IRelayCommand ToggleProjectSelectorCommand { get; }
@@ -189,6 +193,7 @@ namespace ProjectHub.App.ViewModels
         public IRelayCommand ClearLogoCommand { get; }
         public IRelayCommand<Issue> OpenIssueDetailCommand { get; }
         public IRelayCommand ToggleViewModeCommand { get; }
+        public IRelayCommand<Issue> SetPlannedIssueCommand { get; }
 
         public IAsyncRelayCommand<Issue> AddStoryCommand { get; }
         public IAsyncRelayCommand<Issue> AddChildIssueCommand { get; }
@@ -374,7 +379,7 @@ namespace ProjectHub.App.ViewModels
         private void OpenIssueDetail(Issue? issue)
         {
             if (issue == null) return;
-            var window = new ProjectHub.App.Views.IssueDetailWindow(issue, this);
+            var window = new Sleipnir.App.Views.IssueDetailWindow(issue, this);
             window.Show();
         }
 
@@ -607,7 +612,7 @@ namespace ProjectHub.App.ViewModels
         {
             if (idea == null || SelectedProject == null) return;
 
-            var title = ProjectHub.App.Views.InputDialog.Show("Enter Story Title", "New Story");
+            var title = Sleipnir.App.Views.InputDialog.Show("Enter Story Title", "New Story");
             if (string.IsNullOrWhiteSpace(title)) return;
 
             var story = new Issue
@@ -647,17 +652,21 @@ namespace ProjectHub.App.ViewModels
             RefreshCategorizedIssues();
         }
 
-        private async Task AssignToSprintAsync(Issue? issue)
+        private async Task AssignToSpecificSprintAsync(Sprint? sprint)
         {
-            if (issue == null || SelectedSprint == null) return;
+            if (sprint == null || PlannedIssue == null) return;
             
-            issue.SprintId = SelectedSprint.Id;
+            var issue = PlannedIssue;
+            issue.SprintId = sprint.Id;
+
             await _dataService.UpdateIssueAsync(issue);
             await _dataService.AddLogAsync(new IssueLog { 
                 IssueId = issue.Id, 
                 Action = "Planned", 
-                Details = $"Assigned to {SelectedSprint.Name}" 
+                Details = $"Assigned to {sprint.Name}" 
             });
+
+            PlannedIssue = null; // Clear context
             RefreshCategorizedIssues();
         }
 

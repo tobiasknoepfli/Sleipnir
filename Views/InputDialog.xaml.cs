@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 
-namespace ProjectHub.App.Views
+namespace Sleipnir.App.Views
 {
     public partial class InputDialog : Window
     {

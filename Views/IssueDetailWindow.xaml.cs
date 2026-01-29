@@ -1,9 +1,9 @@
 using System.Windows;
 using System.Windows.Controls;
-using ProjectHub.App.Models;
-using ProjectHub.App.ViewModels;
+using Sleipnir.App.Models;
+using Sleipnir.App.ViewModels;
 
-namespace ProjectHub.App.Views
+namespace Sleipnir.App.Views
 {
     public partial class IssueDetailWindow : Window
     {

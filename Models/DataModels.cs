@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Postgrest.Attributes;
 using Postgrest.Models;
 
-namespace ProjectHub.App.Models
+namespace Sleipnir.App.Models
 {
     [Table("projects")]
     public class Project : BaseModel, System.ComponentModel.INotifyPropertyChanged

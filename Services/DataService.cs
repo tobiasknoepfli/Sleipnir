@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ProjectHub.App.Models;
+using Sleipnir.App.Models;
 
-namespace ProjectHub.App.Services
+namespace Sleipnir.App.Services
 {
     public interface IDataService
     {

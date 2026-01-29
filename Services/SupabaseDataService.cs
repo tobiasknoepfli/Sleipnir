@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Supabase;
-using ProjectHub.App.Models;
+using Sleipnir.App.Models;
 using System.Linq;
 
-namespace ProjectHub.App.Services
+namespace Sleipnir.App.Services
 {
     public class SupabaseDataService : IDataService
     {
