@@ -57,8 +57,9 @@ namespace Sleipnir.App.ViewModels
 
         [ObservableProperty]
         private ObservableCollection<Collaborator> _collaborators = new();
-        [ObservableProperty]
-        private List<string> _priorities = new() { "Critical", "Very High", "High", "Medium", "Low", "Very Low", "Nice to Have" };
+        public List<string> Kinds { get; } = new() { "Bug", "Feature", "Patch", "Overhaul", "Alteration" };
+        public List<string> Priorities { get; } = new() { "Critical", "Very High", "High", "Neutral", "Low", "Very Low", "Nice to Have" };
+        public List<string> Statuses { get; } = new() { "Open", "Blocked", "In Progress", "Testing", "Finished" };
 
         [ObservableProperty]
         private ObservableCollection<Issue> _openItems = new();
@@ -163,7 +164,7 @@ namespace Sleipnir.App.ViewModels
             UpdateIssueParentCommand = new AsyncRelayCommand<Issue>(UpdateIssueParentAsync);
             EditChildStoryCommand = new AsyncRelayCommand<Issue>(EditChildStoryAsync);
             DeleteChildStoryCommand = new AsyncRelayCommand<Issue>(DeleteChildStoryAsync);
-            JumpToIssueCommand = new RelayCommand<Issue>(JumpToIssue);
+            JumpToIssueCommand = new RelayCommand<object>(JumpToIssue);
             ArchiveIssueCommand = new AsyncRelayCommand<Issue>(ArchiveIssueAsync);
         }
 
@@ -200,7 +201,8 @@ namespace Sleipnir.App.ViewModels
         public IAsyncRelayCommand<Issue> UpdateIssueParentCommand { get; }
         public IAsyncRelayCommand<Issue> EditChildStoryCommand { get; }
         public IAsyncRelayCommand<Issue> DeleteChildStoryCommand { get; }
-        public IRelayCommand<Issue> JumpToIssueCommand { get; }
+
+        public IRelayCommand<object> JumpToIssueCommand { get; }
         public IAsyncRelayCommand<Issue> ArchiveIssueCommand { get; }
         public IRelayCommand ToggleHubArchiveCommand { get; }
         public IAsyncRelayCommand<Issue> RestoreIssueCommand { get; }
@@ -288,10 +290,24 @@ namespace Sleipnir.App.ViewModels
             // Clear children on all issues first
             foreach (var issue in _allProjectIssues) issue.Children.Clear();
 
+            // Assign Friendly IDs to Ideas
+            var ideas = _allProjectIssues.Where(i => i.Type == "Idea").OrderBy(i => i.CreatedAt).ToList();
+            for (int i = 0; i < ideas.Count; i++) ideas[i].FriendlyId = i + 1;
+
+            // Assign Friendly IDs to Stories
+            var stories = _allProjectIssues.Where(i => i.Type == "Story").OrderBy(i => i.CreatedAt).ToList();
+            for (int i = 0; i < stories.Count; i++) stories[i].FriendlyId = i + 1;
+
+            // Assign Friendly IDs to Issues (Bugs/Features)
+            var otherIssues = _allProjectIssues.Where(i => i.Type != "Idea" && i.Type != "Story").OrderBy(i => i.CreatedAt).ToList();
+            for (int i = 0; i < otherIssues.Count; i++) otherIssues[i].FriendlyId = i + 1;
+
             // Build hierarchy and tags
             foreach (var issue in _allProjectIssues)
             {
-                issue.ParentTitle = null; // Reset
+                issue.ParentTitle = null; 
+                issue.ParentFriendlyId = null;
+                issue.ParentStoryFriendlyId = null;
                 
                 // Set Sprint Tag
                 if (issue.SprintId == null)
@@ -304,25 +320,55 @@ namespace Sleipnir.App.ViewModels
                                  ?? ArchivedSprints.FirstOrDefault(s => s.Id == issue.SprintId);
                     issue.SprintTag = sprint != null ? $"{sprint.Name} | {issue.Status}" : $"{issue.Status}";
                 }
+            }
 
-                if (issue.ParentIssueId != null)
+            // Build Hierarchy (Stories -> Ideas)
+            foreach (var story in _allProjectIssues.Where(i => i.Type == "Story"))
+            {
+                if (story.ParentIssueId.HasValue)
+                {
+                    var idea = _allProjectIssues.FirstOrDefault(p => p.Id == story.ParentIssueId);
+                    if (idea != null)
+                    {
+                        idea.Children.Add(story);
+                        story.ParentTitle = idea.Description;
+                        story.ParentFriendlyId = idea.FriendlyId;
+                    }
+                }
+            }
+
+            // Build Hierarchy (Backlog Items -> Stories/Ideas)
+            foreach (var issue in _allProjectIssues.Where(i => i.Type != "Story" && i.Type != "Idea"))
+            {
+                if (issue.ParentIssueId.HasValue)
                 {
                     var parent = _allProjectIssues.FirstOrDefault(p => p.Id == issue.ParentIssueId);
                     if (parent != null)
                     {
                         parent.Children.Add(issue);
                         issue.ParentTitle = parent.Description;
+
+                        if (parent.Type == "Story")
+                        {
+                            issue.ParentStoryFriendlyId = parent.FriendlyId;
+                            // Trace back to Idea if the Story has one
+                            if (parent.ParentFriendlyId.HasValue)
+                            {
+                                issue.ParentFriendlyId = parent.ParentFriendlyId;
+                            }
+                        }
+                        else if (parent.Type == "Idea")
+                        {
+                            issue.ParentFriendlyId = parent.FriendlyId;
+                        }
                     }
                 }
             }
 
-            // Secondary pass to notify about dependent properties like CanBeArchived
+            // Refresh archivability
             foreach (var issue in _allProjectIssues)
             {
-                if (issue.Type == "Idea" || issue.Type == "Story")
-                {
-                    issue.RefreshArchivability();
-                }
+                if (issue.Type == "Idea" || issue.Type == "Story") issue.RefreshArchivability();
             }
 
             var filtered = _allProjectIssues
@@ -382,13 +428,18 @@ namespace Sleipnir.App.ViewModels
             window.Show();
         }
 
-        private void JumpToIssue(Issue? issue)
+        private void JumpToIssue(object? param)
         {
-            if (issue == null) return;
-            SelectedCategory = issue.Category;
-            // Removed OpenIssueDetail call as per user: "double clicking doesn't open it"
+            if (param is Guid id)
+            {
+                var issue = _allProjectIssues.FirstOrDefault(i => i.Id == id);
+                if (issue != null) OpenIssueDetail(issue);
+            }
+            else if (param is Issue issue)
+            {
+                OpenIssueDetail(issue);
+            }
         }
-
         private void OpenEditProjectModal()
         {
             if (SelectedProject == null) return;
@@ -605,21 +656,23 @@ namespace Sleipnir.App.ViewModels
             await _dataService.CreateIssueAsync(issue);
             _allProjectIssues.Add(issue);
             RefreshCategorizedIssues();
+
+            if (issue.Type == "Idea" || issue.Type == "Story")
+            {
+                OpenIssueDetail(issue);
+            }
         }
 
         private async Task AddStoryAsync(Issue? idea)
         {
             if (idea == null || SelectedProject == null) return;
 
-            var title = Sleipnir.App.Views.InputDialog.Show("Enter Story Title", "New Story");
-            if (string.IsNullOrWhiteSpace(title)) return;
-
             var story = new Issue
             {
                 ProjectId = SelectedProject.Id,
                 ParentIssueId = idea.Id,
                 ProgramComponent = idea.ProgramComponent,
-                Description = title,
+                Description = "New Story",
                 Category = "Pipeline",
                 Type = "Story",
                 Status = "Open",
@@ -629,6 +682,9 @@ namespace Sleipnir.App.ViewModels
             await _dataService.CreateIssueAsync(story);
             _allProjectIssues.Add(story);
             RefreshCategorizedIssues();
+            
+            // Open immediately for editing
+            OpenIssueDetail(story);
         }
 
         private async Task AddChildIssueAsync(Issue? story)
@@ -771,36 +827,24 @@ namespace Sleipnir.App.ViewModels
             PotentialParents.Clear();
             if (issue.Type == "Story")
             {
-                var ideas = _allProjectIssues.Where(i => i.Type == "Idea" && i.Id != issue.Id).ToList();
+                // Stories link to Ideas
+                var ideas = _allProjectIssues.Where(i => i.Type == "Idea" && i.Status != "Archived" && i.Id != issue.Id).ToList();
                 foreach (var idea in ideas) PotentialParents.Add(idea);
             }
             else if (issue.Type != "Idea")
             {
-                var stories = _allProjectIssues.Where(i => i.Type == "Story" && i.Id != issue.Id).ToList();
-                foreach (var story in stories) PotentialParents.Add(story);
+                // Issues can ONLY be linked to stories
+                var parents = _allProjectIssues.Where(i => i.Type == "Story" 
+                    && i.Status != "Archived" && i.Id != issue.Id)
+                    .OrderBy(i => i.CreatedAt)
+                    .ToList();
+                foreach (var p in parents) PotentialParents.Add(p);
             }
         }
 
         private async Task EditChildStoryAsync(Issue? story)
         {
             if (story == null) return;
-
-            var result = System.Windows.MessageBox.Show(
-                "Do you want to edit this story globally (in Pipeline too)?\nSelect 'Yes' to edit globally, 'No' to unlink and edit as a separate item.", 
-                "Edit Shared Story", 
-                System.Windows.MessageBoxButton.YesNoCancel);
-
-            if (result == System.Windows.MessageBoxResult.Cancel) return;
-
-            if (result == System.Windows.MessageBoxResult.No)
-            {
-                var oldParentId = story.ParentIssueId;
-                story.ParentIssueId = null;
-                await _dataService.UpdateIssueAsync(story);
-                if (oldParentId.HasValue) await CheckAndCloseParentIdea(oldParentId.Value);
-                RefreshCategorizedIssues();
-            }
-
             OpenIssueDetail(story);
         }
 
@@ -809,26 +853,28 @@ namespace Sleipnir.App.ViewModels
             if (story == null) return;
 
             var result = System.Windows.MessageBox.Show(
-                "Permanently delete this story everywhere, or just unlink it from this idea?\nSelect 'Yes' to delete everywhere, 'No' to just unlink.", 
-                "Delete/Unlink Story", 
-                System.Windows.MessageBoxButton.YesNoCancel);
+                $"Are you sure you want to permanently delete the story '{story.Description}' AND all its linked backlog issues?", 
+                "Delete Story & Linked Items", 
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning);
 
-            if (result == System.Windows.MessageBoxResult.Cancel) return;
+            if (result != System.Windows.MessageBoxResult.Yes) return;
 
-            if (result == System.Windows.MessageBoxResult.Yes)
+            var oldParentId = story.ParentIssueId;
+
+            // Delete linked backlog issues first
+            var linkedIssues = _allProjectIssues.Where(i => i.ParentIssueId == story.Id).ToList();
+            foreach (var child in linkedIssues)
             {
-                var oldParentId = story.ParentIssueId;
-                await _dataService.DeleteIssueAsync(story.Id);
-                _allProjectIssues.Remove(story);
-                if (oldParentId.HasValue) await CheckAndCloseParentIdea(oldParentId.Value);
+                await _dataService.DeleteIssueAsync(child.Id);
+                _allProjectIssues.Remove(child);
             }
-            else if (result == System.Windows.MessageBoxResult.No)
-            {
-                var oldParentId = story.ParentIssueId;
-                story.ParentIssueId = null;
-                await _dataService.UpdateIssueAsync(story);
-                if (oldParentId.HasValue) await CheckAndCloseParentIdea(oldParentId.Value);
-            }
+
+            // Delete the story itself
+            await _dataService.DeleteIssueAsync(story.Id);
+            _allProjectIssues.Remove(story);
+
+            if (oldParentId.HasValue) await CheckAndCloseParentIdea(oldParentId.Value);
 
             RefreshCategorizedIssues();
         }
@@ -844,17 +890,90 @@ namespace Sleipnir.App.ViewModels
         private async Task ArchiveIssueAsync(Issue? issue)
         {
             if (issue == null) return;
-            if (!issue.CanBeArchived)
-            {
-                System.Windows.MessageBox.Show("This idea cannot be archived yet. All linked stories must be finished first.", "Cannot Archive", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                return;
-            }
 
-            var result = System.Windows.MessageBox.Show($"Are you sure you want to archive '{issue.Description}'?", "Confirm Archive", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
-            if (result != System.Windows.MessageBoxResult.Yes) return;
+            // Idea/Story logic
+            if ((issue.Type == "Idea" || issue.Type == "Story") && issue.Children.Any())
+            {
+                var itemPlural = issue.Type == "Idea" ? "stories" : "backlog issues";
+                var result = System.Windows.MessageBox.Show(
+                    $"This {issue.Type} has linked {itemPlural}. Do you want to Archive them as well or Unlink them?\n\nSelect 'Yes' to ARCHIVE linked {itemPlural}.\nSelect 'No' to UNLINK items and keep them in Archive.", 
+                    $"Archive Linked {issue.Type}?", 
+                    System.Windows.MessageBoxButton.YesNoCancel,
+                    System.Windows.MessageBoxImage.Question);
+
+                if (result == System.Windows.MessageBoxResult.Cancel) return;
+
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    foreach (var child in issue.Children.ToList())
+                    {
+                        child.Status = "Archived";
+                        await _dataService.UpdateIssueAsync(child);
+                    }
+                }
+                else if (result == System.Windows.MessageBoxResult.No)
+                {
+                    foreach (var child in issue.Children.ToList())
+                    {
+                        child.ParentIssueId = null;
+                        await _dataService.UpdateIssueAsync(child);
+                    }
+                }
+            }
 
             issue.Status = "Archived";
             await _dataService.UpdateIssueAsync(issue);
+            RefreshCategorizedIssues();
+        }
+
+        [RelayCommand]
+        private async Task DeleteMainIssueAsync(Issue? issue)
+        {
+            if (issue == null) return;
+
+            // Idea/Story logic
+            if ((issue.Type == "Idea" || issue.Type == "Story") && issue.Children.Any())
+            {
+                var itemPlural = issue.Type == "Idea" ? "stories" : "backlog issues";
+                var result = System.Windows.MessageBox.Show(
+                    $"This {issue.Type} has linked {itemPlural}. Do you want to DELETE them as well or just UNLINK them?\n\nSelect 'Yes' to DELETE linked {itemPlural}.\nSelect 'No' to UNLINK {itemPlural}.", 
+                    "Delete Linked Items?",
+                    System.Windows.MessageBoxButton.YesNoCancel,
+                    System.Windows.MessageBoxImage.Warning);
+
+                if (result == System.Windows.MessageBoxResult.Cancel) return;
+
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    foreach (var child in issue.Children.ToList())
+                    {
+                        await _dataService.DeleteIssueAsync(child.Id);
+                        _allProjectIssues.Remove(child);
+                    }
+                }
+                else if (result == System.Windows.MessageBoxResult.No)
+                {
+                    foreach (var child in issue.Children.ToList())
+                    {
+                        child.ParentIssueId = null;
+                        await _dataService.UpdateIssueAsync(child);
+                    }
+                }
+            }
+            else
+            {
+                var confirm = System.Windows.MessageBox.Show($"Are you sure you want to delete '{issue.Description}'?", "Confirm Delete", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+                if (confirm != System.Windows.MessageBoxResult.Yes) return;
+            }
+
+            await DeleteIssueDirectAsync(issue);
+        }
+
+        public async Task DeleteIssueDirectAsync(Issue? issue)
+        {
+            if (issue == null) return;
+            await _dataService.DeleteIssueAsync(issue.Id);
+            _allProjectIssues.Remove(issue);
             RefreshCategorizedIssues();
         }
 

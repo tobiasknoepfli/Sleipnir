@@ -30,380 +30,176 @@
         <local:MultiplierConverter x:Key="MultiplierConverter"/>
 
         <DataTemplate x:Key="IssueCardTemplate">
-            <Border Style="{StaticResource ModernCard}" Margin="0,0,0,12" Background="#1C1F30">
+            <Border Style="{StaticResource ModernCard}" Margin="0,0,0,12" Background="#1C1F30" Padding="15">
                 <Border.InputBindings>
                     <MouseBinding MouseAction="LeftDoubleClick" 
                                   Command="{Binding DataContext.OpenIssueDetailCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
                                   CommandParameter="{Binding}"/>
                 </Border.InputBindings>
                 <Grid>
-                    <StackPanel>
-                        <Grid Margin="0,0,0,8">
-                            <Border Background="#2A2F45" Padding="8,3" CornerRadius="4" HorizontalAlignment="Left">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center" ToolTip="{Binding Type}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                                <Setter Property="Text" Value="📋"/>
-                                                <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Type}" Value="Bug">
-                                                        <Setter Property="Text" Value="🐞"/>
-                                                        <Setter Property="Foreground" Value="#FF5252"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Type}" Value="Story">
-                                                        <Setter Property="Text" Value="📘"/>
-                                                        <Setter Property="Foreground" Value="#4D7CFF"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Type}" Value="Feature">
-                                                        <Setter Property="Text" Value="✨"/>
-                                                        <Setter Property="Foreground" Value="#FFD740"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Type}" Value="Idea">
-                                                        <Setter Property="Text" Value="💡"/>
-                                                        <Setter Property="Foreground" Value="#B388FF"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Text="{Binding Type}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-                            
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                 <Grid Margin="0,0,5,0">
-                                     <ToggleButton x:Name="PlanToggle" 
-                                                   Command="{Binding DataContext.SetPlannedIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                   CommandParameter="{Binding}">
-                                         <ToggleButton.Style>
-                                             <Style TargetType="ToggleButton" BasedOn="{StaticResource SidebarToggleButton}">
-                                                 <Setter Property="Padding" Value="0"/>
-                                                 <Setter Property="Height" Value="Auto"/>
-                                                 <Setter Property="Visibility" Value="Collapsed"/>
-                                                 <Style.Triggers>
-                                                      <MultiDataTrigger>
-                                                          <MultiDataTrigger.Conditions>
-                                                              <Condition Binding="{Binding SprintId, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}" Value="Visible"/>
-                                                              <Condition Binding="{Binding Type}" Value="Bug"/>
-                                                          </MultiDataTrigger.Conditions>
-                                                          <Setter Property="Visibility" Value="Visible"/>
-                                                      </MultiDataTrigger>
-                                                      <MultiDataTrigger>
-                                                          <MultiDataTrigger.Conditions>
-                                                              <Condition Binding="{Binding SprintId, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}" Value="Visible"/>
-                                                              <Condition Binding="{Binding Type}" Value="Feature"/>
-                                                          </MultiDataTrigger.Conditions>
-                                                          <Setter Property="Visibility" Value="Visible"/>
-                                                      </MultiDataTrigger>
-                                                 </Style.Triggers>
-                                             </Style>
-                                         </ToggleButton.Style>
-                                         <Border Background="#3D7C4DFF" Padding="4,2" CornerRadius="4">
-                                             <TextBlock Text="PLAN" FontSize="10" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
-                                         </Border>
-                                     </ToggleButton>
-
-                                     <Popup IsOpen="{Binding IsChecked, ElementName=PlanToggle}" StaysOpen="False" Placement="Bottom" PlacementTarget="{Binding ElementName=PlanToggle}" AllowsTransparency="True">
-                                         <Border Background="#1A1D2E" BorderBrush="#30363D" BorderThickness="1" CornerRadius="8" Width="250" MaxHeight="300" Margin="0,5,0,0">
-                                             <Grid>
-                                                  <Grid.RowDefinitions>
-                                                      <RowDefinition Height="Auto"/>
-                                                      <RowDefinition Height="*"/>
-                                                  </Grid.RowDefinitions>
-                                                  <TextBlock Text="Select Target Sprint" FontSize="10" Foreground="#8B949E" Margin="12,12,12,8" FontWeight="Bold"/>
-                                                  <ScrollViewer Grid.Row="1" Margin="5">
-                                                      <ItemsControl ItemsSource="{Binding DataContext.Sprints, RelativeSource={RelativeSource AncestorType=Window}}">
-                                                          <ItemsControl.ItemTemplate>
-                                                              <DataTemplate>
-                                                                  <Button Command="{Binding DataContext.AssignToSprintCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                                          CommandParameter="{Binding}"
-                                                                          Click="SprintSelected_Click"
-                                                                          Style="{StaticResource SidebarButton}" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2">
-                                                                       <StackPanel>
-                                                                           <TextBlock Text="{Binding Name}" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
-                                                                           <StackPanel Orientation="Horizontal" Opacity="0.6">
-                                                                               <TextBlock Text="{Binding StartDate, StringFormat='{}{0:dd.MM.yyyy}'}" FontSize="10"/>
-                                                                               <TextBlock Text=" - " FontSize="10"/>
-                                                                               <TextBlock Text="{Binding EndDate, StringFormat='{}{0:dd.MM.yyyy}'}" FontSize="10"/>
-                                                                           </StackPanel>
-                                                                       </StackPanel>
-                                                                  </Button>
-                                                              </DataTemplate>
-                                                          </ItemsControl.ItemTemplate>
-                                                      </ItemsControl>
-                                                  </ScrollViewer>
-                                             </Grid>
-                                         </Border>
-                                     </Popup>
-                                 </Grid>
-
-                                <Button Command="{Binding DataContext.ArchiveIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                        CommandParameter="{Binding}"
-                                        Margin="5,0,0,0">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource SidebarButton}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Setter Property="Opacity" Value="0.5"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Type}" Value="Idea">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Type}" Value="Story">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding CanBeArchived}" Value="True">
-                                                    <Setter Property="Opacity" Value="1.0"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                    <Border Background="#2A2F45" Padding="4,2" CornerRadius="4">
-                                        <TextBlock Text="📁 ARCHIVE" FontSize="9" Foreground="#8B949E" FontWeight="Bold"/>
-                                    </Border>
-                                </Button>
-
-                                <Button Command="{Binding DataContext.RestoreIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                        CommandParameter="{Binding}"
-                                        Margin="5,0,0,0">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource SidebarButton}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Status}" Value="Archived">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                    <Border Background="#3D7C4DFF" Padding="4,2" CornerRadius="4">
-                                        <TextBlock Text="↺ RESTORE" FontSize="9" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
-                                    </Border>
-                                </Button>
-                            </StackPanel>
-                            
-                            <!-- Parent Idea Tag for Stories (Top Right) -->
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,5,0"
-                                        Visibility="{Binding ParentTitle, Converter={StaticResource NullToVisibilityConverter}}">
-                                <Border Background="#1A1D2E" BorderBrush="#3D7C4DFF" BorderThickness="1" CornerRadius="4" Padding="6,2">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="💡 " FontSize="10" VerticalAlignment="Center"/>
-                                        <TextBlock Text="{Binding ParentTitle}" FontSize="10" Foreground="#E0E0E0" MaxWidth="100" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                        <Button Command="{Binding DataContext.UnlinkIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                CommandParameter="{Binding}"
-                                                Style="{StaticResource SidebarButton}" Padding="4,0" Margin="5,0,0,0">
-                                            <TextBlock Text="✕" FontSize="8" Foreground="#FF5252" FontWeight="Bold"/>
-                                        </Button>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </Grid>
-
-                        <TextBlock Text="{Binding Description}" FontWeight="SemiBold" Margin="0,0,0,8" 
-                                   TextWrapping="Wrap" FontSize="13" LineHeight="17"/>
-                        
+                    <!-- Standard Issue Layout -->
+                    <StackPanel x:Name="StandardLayout">
                         <Grid>
-                            <StackPanel Orientation="Horizontal">
-                                <Border Background="#1A1D2E" Padding="5,2" CornerRadius="4" Margin="0,0,5,0" ToolTip="{Binding Priority}">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Type}" Value="Idea">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Type}" Value="Story">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <TextBlock FontSize="12" VerticalAlignment="Center">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text" Value="⏺"/>
-                                                <Setter Property="Foreground" Value="#FFD740"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Priority}" Value="Critical">
-                                                        <Setter Property="Text" Value="⚡"/>
-                                                        <Setter Property="Foreground" Value="#FF1744"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Priority}" Value="Very High">
-                                                        <Setter Property="Text" Value="⏫"/>
-                                                        <Setter Property="Foreground" Value="#FF5252"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Priority}" Value="High">
-                                                        <Setter Property="Text" Value="🔼"/>
-                                                        <Setter Property="Foreground" Value="#FFAB40"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Priority}" Value="Medium">
-                                                        <Setter Property="Text" Value="⏺"/>
-                                                        <Setter Property="Foreground" Value="#FFD740"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Priority}" Value="Low">
-                                                        <Setter Property="Text" Value="🔽"/>
-                                                        <Setter Property="Foreground" Value="#69F0AE"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Priority}" Value="Very Low">
-                                                        <Setter Property="Text" Value="⏬"/>
-                                                        <Setter Property="Foreground" Value="#40C4FF"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Priority}" Value="Nice to Have">
-                                                        <Setter Property="Text" Value="💡"/>
-                                                        <Setter Property="Foreground" Value="#7C4DFF"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </Border>
-                                <Border Background="#1A1D2E" Padding="5,2" CornerRadius="4">
-                                    <TextBlock Text="{Binding AgeString}" FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
-                                </Border>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="📋" Foreground="#4D7CFF" FontSize="14" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <Border BorderBrush="#4D7CFF" BorderThickness="1" CornerRadius="2" Padding="4,1">
+                                        <TextBlock Text="ISSUE" Foreground="#4D7CFF" FontSize="10" FontWeight="Bold"/>
+                                    </Border>
+                                </StackPanel>
+                                
+                                <TextBlock Text="{Binding TypeTag}" FontSize="11" Foreground="#8B949E" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBlock Text="{Binding PriorityTag}" FontSize="11" Foreground="#8B949E" FontWeight="SemiBold" Margin="0,0,0,15"/>
+
+                                <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" 
+                                         Background="Transparent" BorderThickness="0" Foreground="White" 
+                                         FontSize="14" FontWeight="Bold" Margin="0,0,0,10" Padding="0"
+                                         TextWrapping="Wrap" AcceptsReturn="False">
+                                    <TextBox.InputBindings>
+                                        <MouseBinding MouseAction="LeftDoubleClick" 
+                                                      Command="{Binding DataContext.OpenIssueDetailCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                      CommandParameter="{Binding}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                                
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="👤" Foreground="#8B949E" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ResponsibleUsers}" FontSize="11" Foreground="#E0E0E0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                
+                                <TextBlock Text="{Binding CreatedAt, StringFormat='{}created {0:dd.MM.yyyy}'}" 
+                                           FontSize="9" Foreground="#8B949E" Opacity="0.6"/>
                             </StackPanel>
-                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                 <TextBlock Text="{Binding ResponsibleUsers}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,10,0">
-                                     <TextBlock.Style>
-                                         <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                             <Style.Triggers>
-                                                 <DataTrigger Binding="{Binding Type}" Value="Idea">
-                                                     <Setter Property="Visibility" Value="Collapsed"/>
-                                                 </DataTrigger>
-                                                 <DataTrigger Binding="{Binding Type}" Value="Story">
-                                                     <Setter Property="Visibility" Value="Collapsed"/>
-                                                 </DataTrigger>
-                                             </Style.Triggers>
-                                         </Style>
-                                     </TextBlock.Style>
-                                 </TextBlock>
-                                 <Border Background="#337C4DFF" Padding="5,2" CornerRadius="4" Visibility="{Binding SprintId, Converter={StaticResource NullToVisibilityConverter}}">
-                                    <TextBlock Text="Sprint" FontSize="10" Foreground="{StaticResource AccentBrush}"/>
-                                 </Border>
+                            
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                <Grid Margin="0,0,0,10" HorizontalAlignment="Right">
+                                      <ToggleButton x:Name="PlanToggle" Style="{StaticResource SidebarToggleButton}" Padding="0" Height="Auto"
+                                                    Command="{Binding DataContext.SetPlannedIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}">
+                                          <Border Background="#3D7C4DFF" Padding="6,3" CornerRadius="4">
+                                              <TextBlock Text="PLAN" FontSize="10" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
+                                          </Border>
+                                      </ToggleButton>
+                                      <Popup IsOpen="{Binding IsChecked, ElementName=PlanToggle}" StaysOpen="False" Placement="Bottom" PlacementTarget="{Binding ElementName=PlanToggle}" AllowsTransparency="True">
+                                          <Border Background="#1A1D2E" BorderBrush="#30363D" BorderThickness="1" CornerRadius="8" Width="250" MaxHeight="300" Margin="0,5,0,0">
+                                              <ScrollViewer Margin="5">
+                                                  <ItemsControl ItemsSource="{Binding DataContext.Sprints, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                      <ItemsControl.ItemTemplate>
+                                                          <DataTemplate>
+                                                              <Button Command="{Binding DataContext.AssignToSprintCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                                      CommandParameter="{Binding}" Click="SprintSelected_Click"
+                                                                      Style="{StaticResource SidebarButton}" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2">
+                                                                   <StackPanel>
+                                                                       <TextBlock Text="{Binding Name}" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
+                                                                       <TextBlock Text="{Binding StartDate, StringFormat='{}{0:dd.MM.yyyy}'}" FontSize="10" Opacity="0.6"/>
+                                                                   </StackPanel>
+                                                              </Button>
+                                                          </DataTemplate>
+                                                      </ItemsControl.ItemTemplate>
+                                                  </ItemsControl>
+                                              </ScrollViewer>
+                                          </Border>
+                                      </Popup>
+                                </Grid>
+                                
+                                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top">
+                                    <TextBlock Text="{Binding IssueNumber}" Foreground="#8B949E" FontSize="10" FontWeight="Bold" Margin="0,0,0,2"/>
+                                    <TextBlock Text="{Binding ParentStoryNumber}" Foreground="#FF5252" FontSize="10" FontWeight="Bold" Margin="0,0,0,2"
+                                               Visibility="{Binding ParentStoryNumber, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                    <TextBlock Text="{Binding ParentIdeaNumber}" Foreground="#FFD740" FontSize="10" FontWeight="Bold" Margin="0,0,0,2"
+                                               Visibility="{Binding ParentIdeaNumber, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding AgeString}" FontSize="10" Foreground="#8B949E" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,20,0,0" Opacity="0.8"/>
                             </StackPanel>
                         </Grid>
+                    </StackPanel>
 
-                        <!-- Added for Hierarchy -->
-                        <StackPanel Margin="0,15,0,0">
-                            <!-- Show children for Ideas (Stories) -->
-                            <StackPanel Visibility="{Binding Category, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Hub}">
-                                <ItemsControl ItemsSource="{Binding Children}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="#121420" Margin="0,0,0,4" Padding="10,6" CornerRadius="4">
-                                                <Border.InputBindings>
-                                                    <MouseBinding MouseAction="LeftDoubleClick" 
-                                                                  Command="{Binding DataContext.JumpToIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                                  CommandParameter="{Binding}"/>
-                                                </Border.InputBindings>
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{Binding Description}" FontSize="11" Foreground="#E0E0E0" TextWrapping="Wrap"/>
-                                                    <Border Grid.Column="1" Background="#2A2F45" CornerRadius="4" Padding="5,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding SprintTag}" FontSize="8" Foreground="#8B949E" FontWeight="Bold"/>
-                                                    </Border>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <Button Command="{Binding DataContext.AddStoryCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                        CommandParameter="{Binding}"
-                                        Style="{StaticResource SidebarButton}" HorizontalAlignment="Left" Margin="0,5,0,0">
-                                    <TextBlock Text="+ Add Story" FontSize="10" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
+                    <!-- Pipeline Story Layout -->
+                    <StackPanel x:Name="PipelineStoryLayout" Visibility="Collapsed">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top">
+                                <TextBlock Text="📘" Foreground="#FF5252" FontSize="14" Margin="0,0,5,0"/>
+                                <Border BorderBrush="#FF5252" BorderThickness="1" CornerRadius="2" Padding="4,1">
+                                    <TextBlock Text="STORY" Foreground="#FF5252" FontSize="10" FontWeight="Bold"/>
+                                </Border>
+                            </StackPanel>
+                            <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top">
+                                <TextBlock Text="{Binding StoryNumber}" Foreground="#8B949E" FontSize="10" HorizontalAlignment="Right" Opacity="0.8"/>
+                                <Button Command="{Binding DataContext.JumpToIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding ParentIssueId}"
+                                        Style="{StaticResource SidebarButton}" Padding="0" Margin="0,2,0,0"
+                                        Visibility="{Binding ParentFriendlyId, Converter={StaticResource NullToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding ParentIdeaNumber}" Foreground="#FFD740" FontSize="9" FontWeight="Bold"/>
                                 </Button>
                             </StackPanel>
-
-                            <!-- Show children for Stories (Issues) -->
-                            <StackPanel Visibility="{Binding Category, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Pipeline}">
-                                <!-- Strategic section removed (now in header) -->
-
-                                <ItemsControl ItemsSource="{Binding Children}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="#121420" Margin="0,0,0,4" Padding="10,6" CornerRadius="4">
-                                                <Border.InputBindings>
-                                                    <MouseBinding MouseAction="LeftDoubleClick" 
-                                                                  Command="{Binding DataContext.JumpToIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                                  CommandParameter="{Binding}"/>
-                                                </Border.InputBindings>
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{Binding Description}" FontSize="11" Foreground="#E0E0E0" TextWrapping="Wrap"/>
-                                                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                         <Grid Margin="0,0,5,0">
-                                                             <ToggleButton x:Name="ChildPlanToggle" 
-                                                                           Command="{Binding DataContext.SetPlannedIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                           CommandParameter="{Binding}"
-                                                                           Style="{StaticResource SidebarToggleButton}" Padding="0" Height="Auto"
-                                                                           Visibility="{Binding SprintId, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}">
-                                                                 <Border Background="#3D7C4DFF" Padding="4,2" CornerRadius="4">
-                                                                     <TextBlock Text="PLAN" FontSize="8" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
-                                                                 </Border>
-                                                             </ToggleButton>
-
-                                                             <Popup IsOpen="{Binding IsChecked, ElementName=ChildPlanToggle}" StaysOpen="False" Placement="Bottom" PlacementTarget="{Binding ElementName=ChildPlanToggle}" AllowsTransparency="True">
-                                                                 <Border Background="#1A1D2E" BorderBrush="#30363D" BorderThickness="1" CornerRadius="8" Width="220" MaxHeight="250" Margin="0,5,0,0">
-                                                                     <Grid>
-                                                                          <Grid.RowDefinitions>
-                                                                              <RowDefinition Height="Auto"/>
-                                                                              <RowDefinition Height="*"/>
-                                                                          </Grid.RowDefinitions>
-                                                                          <TextBlock Text="Select Target Sprint" FontSize="9" Foreground="#8B949E" Margin="10,10,10,5" FontWeight="Bold"/>
-                                                                          <ScrollViewer Grid.Row="1" Margin="5">
-                                                                              <ItemsControl ItemsSource="{Binding DataContext.Sprints, RelativeSource={RelativeSource AncestorType=Window}}">
-                                                                                  <ItemsControl.ItemTemplate>
-                                                                                      <DataTemplate>
-                                                                                          <Button Command="{Binding DataContext.AssignToSprintCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                                                                  CommandParameter="{Binding}"
-                                                                                                  Click="SprintSelected_Click"
-                                                                                                  Style="{StaticResource SidebarButton}" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,0,0,2">
-                                                                                               <StackPanel>
-                                                                                                   <TextBlock Text="{Binding Name}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                                                                                   <StackPanel Orientation="Horizontal" Opacity="0.6">
-                                                                                                       <TextBlock Text="{Binding StartDate, StringFormat='{}{0:dd.MM.yyyy}'}" FontSize="9"/>
-                                                                                                       <TextBlock Text=" - " FontSize="9"/>
-                                                                                                       <TextBlock Text="{Binding EndDate, StringFormat='{}{0:dd.MM.yyyy}'}" FontSize="9"/>
-                                                                                                   </StackPanel>
-                                                                                               </StackPanel>
-                                                                                          </Button>
-                                                                                      </DataTemplate>
-                                                                                  </ItemsControl.ItemTemplate>
-                                                                              </ItemsControl>
-                                                                          </ScrollViewer>
-                                                                     </Grid>
-                                                                 </Border>
-                                                             </Popup>
-                                                         </Grid>
-                                                         <Border Background="#2A2F45" CornerRadius="4" Padding="5,2" VerticalAlignment="Center">
-                                                             <TextBlock Text="{Binding Status}" FontSize="8" Foreground="#8B949E" FontWeight="Bold"/>
-                                                         </Border>
-                                                     </StackPanel>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <Button Command="{Binding DataContext.AddChildIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                        CommandParameter="{Binding}"
-                                        Style="{StaticResource SidebarButton}" HorizontalAlignment="Left" Margin="0,5,0,0">
-                                    <TextBlock Text="+ Add Issue" FontSize="10" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
-                                </Button>
-                            </StackPanel>
+                        </Grid>
+                        <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" Foreground="White" 
+                                 FontSize="16" FontWeight="Bold" Margin="0,15,0,10" Padding="0" TextWrapping="Wrap" AcceptsReturn="False"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                            <TextBlock Text="{Binding IssueCount}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="12"/>
+                            <TextBlock Text=" linked issues" Foreground="#8B949E" FontSize="12" Margin="5,0,0,0"/>
                         </StackPanel>
+                        <Button Command="{Binding DataContext.AddChildIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                CommandParameter="{Binding}" Style="{StaticResource SidebarButton}" HorizontalAlignment="Left" Padding="0" Margin="0,5,0,10">
+                            <TextBlock Text="+ Issue" FontSize="11" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
+                        </Button>
+                        <Grid Margin="0,10,0,0">
+                            <TextBlock Text="{Binding CreatedAt, StringFormat='{}created {0:dd.MM.yyyy}'}" FontSize="9" Foreground="#8B949E" VerticalAlignment="Bottom" Opacity="0.6"/>
+                            <TextBlock Text="{Binding AgeString}" FontSize="9" Foreground="#8B949E" HorizontalAlignment="Right" VerticalAlignment="Bottom" Opacity="0.6"/>
+                        </Grid>
+                    </StackPanel>
 
-                        <!-- Timestamp -->
-                        <TextBlock Text="{Binding CreatedAt, StringFormat='{}Idea from {0:dd.MM.yyyy HH:mm}'}" 
-                                   FontSize="9" Foreground="{StaticResource TextMutedBrush}" Margin="0,10,0,0" Opacity="0.6"
-                                   Visibility="{Binding Category, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Hub}"/>
+                    <!-- Idea Hub Layout -->
+                    <StackPanel x:Name="IdeaHubLayout" Visibility="Collapsed">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top">
+                                <TextBlock Text="💡" Foreground="#FFD740" FontSize="14" Margin="0,0,5,0"/>
+                                <Border BorderBrush="#FFD740" BorderThickness="1" CornerRadius="2" Padding="4,1">
+                                    <TextBlock Text="IDEA" Foreground="#FFD740" FontSize="10" FontWeight="Bold"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="{Binding IdeaNumber}" Foreground="#8B949E" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Top" Opacity="0.8"/>
+                        </Grid>
+                        <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" Foreground="White" 
+                                 FontSize="16" FontWeight="Bold" Margin="0,15,0,10" Padding="0" TextWrapping="Wrap" AcceptsReturn="False"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                            <TextBlock Text="{Binding StoryCount}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="12"/>
+                            <TextBlock Text=" linked stories" Foreground="#8B949E" FontSize="12" Margin="5,0,0,0"/>
+                        </StackPanel>
+                        <Button Command="{Binding DataContext.AddStoryCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                CommandParameter="{Binding}" Style="{StaticResource SidebarButton}" HorizontalAlignment="Left" Padding="0" Margin="0,5,0,10">
+                            <TextBlock Text="+ Story" FontSize="11" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
+                        </Button>
+                        <Grid Margin="0,10,0,0">
+                            <TextBlock Text="{Binding CreatedAt, StringFormat='{}created {0:dd.MM.yyyy}'}" FontSize="9" Foreground="#8B949E" VerticalAlignment="Bottom" Opacity="0.6"/>
+                            <TextBlock Text="{Binding AgeString}" FontSize="9" Foreground="#8B949E" HorizontalAlignment="Right" VerticalAlignment="Bottom" Opacity="0.6"/>
+                        </Grid>
                     </StackPanel>
                 </Grid>
             </Border>
+            <DataTemplate.Triggers>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Type}" Value="Idea"/>
+                        <Condition Binding="{Binding Category}" Value="Hub"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter TargetName="StandardLayout" Property="Visibility" Value="Collapsed"/>
+                    <Setter TargetName="IdeaHubLayout" Property="Visibility" Value="Visible"/>
+                </MultiDataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Type}" Value="Story"/>
+                        <Condition Binding="{Binding Category}" Value="Pipeline"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter TargetName="StandardLayout" Property="Visibility" Value="Collapsed"/>
+                    <Setter TargetName="PipelineStoryLayout" Property="Visibility" Value="Visible"/>
+                </MultiDataTrigger>
+            </DataTemplate.Triggers>
         </DataTemplate>
     </Window.Resources>
 
@@ -658,7 +454,7 @@
                                                 <Setter Property="Text" Value="Create New Issue"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding SelectedCategory}" Value="Hub">
-                                                        <Setter Property="Text" Value="Create Ideas"/>
+                                                        <Setter Property="Text" Value="Create New Idea"/>
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding SelectedCategory}" Value="Pipeline">
                                                         <Setter Property="Text" Value="Create New Story"/>

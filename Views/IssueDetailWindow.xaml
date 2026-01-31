@@ -7,15 +7,98 @@
         mc:Ignorable="d"
         Title="Sleipnir | Issue Details" Height="600" Width="800"
         Icon="/Resources/sleipnir.ico"
-        Background="#0F111A"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="False">
-
+    <Window.Style>
+        <Style TargetType="Window">
+            <Setter Property="Background" Value="#0F111A"/>
+        </Style>
+    </Window.Style>
     <Window.Resources>
         <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <local:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
         <local:EqualityToVisibilityConverter x:Key="EqualityToVisibilityConverter"/>
+        <local:StringContainsMultiConverter x:Key="StringContainsMultiConverter"/>
+
+        <!-- ComboBox Style for Dark Theme -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2A2F45"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Name="ToggleButton" 
+                                          Background="{TemplateBinding Background}"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          BorderThickness="{TemplateBinding BorderThickness}"
+                                          Padding="{TemplateBinding Padding}"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press"
+                                          HorizontalContentAlignment="Left">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="{TemplateBinding Background}" 
+                                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                                CornerRadius="4">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="30"/>
+                                                </Grid.ColumnDefinitions>
+                                                 <ContentPresenter Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  ContentTemplate="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  ContentTemplateSelector="{Binding SelectionBoxItemTemplateSelector, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  Margin="{TemplateBinding Padding}" 
+                                                                  VerticalAlignment="Center"
+                                                                  IsHitTestVisible="False"/>
+                                                 <TextBlock Grid.Column="1" Text="▼" Opacity="0.6" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="10"/>
+                                            </Grid>
+                                        </Border>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                                <Border Name="DropDownBorder" Background="#2A2F45" BorderBrush="#30363D" BorderThickness="1" CornerRadius="4" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="300" Margin="0,2,0,0">
+                                    <ScrollViewer SnapsToDevicePixels="True">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBoxItem Style -->
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#3D4460"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#7C4DFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <WindowChrome.WindowChrome>
@@ -30,11 +113,31 @@
         </Grid.RowDefinitions>
 
         <!-- Custom Title Bar -->
-        <Border Background="#141724" Height="32" BorderBrush="#30363D" BorderThickness="0,0,0,1">
+        <Border Height="32" BorderBrush="#30363D" BorderThickness="0,0,0,1">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="#141724"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Type}" Value="Idea">
+                            <Setter Property="Background" Value="#2b2402"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <Grid>
                 <StackPanel Orientation="Horizontal" Margin="15,0,0,0">
                     <Image Source="/Resources/sleipnir_logo.png" Height="16" Width="16" Margin="0,0,8,0"/>
-                    <TextBlock Text="Sleipnir | Issue Details" VerticalAlignment="Center" Foreground="#8B949E" FontSize="12"/>
+                    <TextBlock VerticalAlignment="Center" Foreground="#8B949E" FontSize="12">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="Sleipnir | Issue Details"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Type}" Value="Idea"><Setter Property="Text" Value="Sleipnir | Idea Details"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding Type}" Value="Story"><Setter Property="Text" Value="Sleipnir | Story Details"/></DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" WindowChrome.IsHitTestVisibleInChrome="True">
                     <Button Content="✕" Style="{StaticResource WindowCloseButton}" Click="Close_Click"/>
@@ -42,167 +145,386 @@
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1" Padding="30" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="1" Padding="30" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
             <StackPanel>
                 <!-- Title Row -->
-                <TextBlock Text="PILLAR / MAIN TITLE" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,8"/>
-                <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" 
-                         FontSize="20" FontWeight="Bold" Background="#2A2F45" BorderThickness="0" Padding="10" Foreground="White" Margin="0,0,0,20"/>
+                <TextBlock Text="TITLE" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,8"/>
+                <TextBox x:Name="TitleTextBox" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" 
+                          FontSize="20" FontWeight="Bold" Background="#2A2F45" BorderThickness="0" Padding="12" Foreground="White" Margin="0,0,0,25"/>
 
-                
-                <Grid Margin="0,0,0,30">
-                    <StackPanel Orientation="Horizontal">
-                        <Border Background="#337C4DFF" CornerRadius="4" Padding="8,4" Margin="0,0,10,0">
-                            <TextBlock Text="{Binding Type}" Foreground="#7C4DFF" FontWeight="Bold" FontSize="11"/>
-                        </Border>
-                        <Border Background="#2A2F45" CornerRadius="4" Padding="8,4">
-                            <TextBlock Text="{Binding Status}" Foreground="#E0E0E0" FontSize="11"/>
-                        </Border>
-                    </StackPanel>
-                </Grid>
-
-                <Grid Margin="0,0,0,30">
-                    <Grid.Style>
-                        <Style TargetType="Grid">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Type}" Value="Idea">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding Type}" Value="Story">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Grid.Style>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel>
-                        <TextBlock Text="Priority" Foreground="#8B949E" Margin="0,0,0,8"/>
-                        <ComboBox ItemsSource="{Binding DataContext.Priorities, RelativeSource={RelativeSource AncestorType=Window}}"
-                                  SelectedItem="{Binding Priority}"
-                                  Background="#2A2F45" BorderThickness="0" Padding="10"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="Responsible Users" Foreground="#8B949E" Margin="0,0,0,8"/>
-                        <TextBox Text="{Binding ResponsibleUsers, UpdateSourceTrigger=PropertyChanged}" 
-                                 Background="#2A2F45" BorderThickness="0" Padding="10" Foreground="White"
-                                 ToolTip="Enter names separated by semicolon"/>
-                    </StackPanel>
-                </Grid>
-
-                <TextBlock Text="THE IDEA" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,8"/>
+                <!-- Description Row -->
+                <TextBlock Text="DESCRIPTION" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,8"/>
                 <TextBox Text="{Binding LongDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                          Background="#2A2F45" BorderThickness="0" Padding="15" Foreground="White" 
-                         Height="200" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                         Margin="0,0,0,30"/>
+                         MinHeight="120" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                         Margin="0,0,0,25" FontSize="14"/>
 
-                <!-- Hierarchy / Linking -->
-                <Border Background="#1A1D2E" CornerRadius="8" Padding="20">
-                    <StackPanel>
-                        <!-- Ideas: List of linked stories -->
-                        <StackPanel Visibility="{Binding Type, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Idea}">
-                             <TextBlock Text="LINKED EXECUTION STORIES" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,15"/>
-                             <ItemsControl ItemsSource="{Binding Children}" Margin="0,0,0,10">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="#2A2F45" Margin="0,0,0,4" Padding="10,6" CornerRadius="4">
-                                            <Border.InputBindings>
-                                                <MouseBinding MouseAction="LeftDoubleClick" 
-                                                              Command="{Binding ViewModel.JumpToIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                              CommandParameter="{Binding}"/>
-                                            </Border.InputBindings>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Text="{Binding Description}" Foreground="White" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                                                <Border Grid.Column="1" Background="#1A1D2E" CornerRadius="4" Padding="5,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding SprintTag}" FontSize="8" Foreground="#8B949E" FontWeight="Bold"/>
-                                                </Border>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <Button Command="{Binding ViewModel.AddStoryCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                    CommandParameter="{Binding}"
-                                    Style="{StaticResource SidebarButton}" HorizontalAlignment="Left">
-                                <TextBlock Text="+ Add New Story" FontSize="10" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
-                            </Button>
+
+                <StackPanel>
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Type}" Value="Idea"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                <DataTrigger Binding="{Binding Type}" Value="Story"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <Grid Margin="0,0,0,25">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="1.5*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Kind Dropdown -->
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="KIND" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,8"/>
+                            <ComboBox ItemsSource="{Binding ViewModel.Kinds, RelativeSource={RelativeSource AncestorType=Window}}"
+                                      SelectedItem="{Binding Type}"
+                                      Background="#2A2F45" BorderThickness="0" Padding="12" Foreground="White"/>
                         </StackPanel>
 
-                        <!-- Stories / Tasks: Linking to parent Idea -->
-                        <StackPanel Visibility="{Binding Type, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=NOT:Idea}">
-                            <!-- Current Parent Case -->
-                            <StackPanel Visibility="{Binding ParentTitle, Converter={StaticResource NullToVisibilityConverter}}">
-                                <TextBlock Text="LINKED STRATEGIC IDEA" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,15"/>
-                                <Border Background="#2A2F45" Padding="15,12" CornerRadius="8" BorderBrush="#3D7C4DFF" BorderThickness="1">
+                        <!-- Priority Options -->
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="PRIORITY" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,8"/>
+                            <ListBox ItemsSource="{Binding ViewModel.Priorities, RelativeSource={RelativeSource AncestorType=Window}}"
+                                     SelectedItem="{Binding Priority}"
+                                     Background="Transparent" BorderThickness="0">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Vertical"/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListBoxItem">
+                                                    <RadioButton IsChecked="{Binding IsSelected, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                                 Foreground="White" Margin="0,0,0,8">
+                                                        <RadioButton.Content>
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Width="25">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding}" Value="Critical"><Setter Property="Text" Value="‼"/></DataTrigger>
+                                                                                <DataTrigger Binding="{Binding}" Value="Very High"><Setter Property="Text" Value="❗"/></DataTrigger>
+                                                                                <DataTrigger Binding="{Binding}" Value="High"><Setter Property="Text" Value="↑"/></DataTrigger>
+                                                                                <DataTrigger Binding="{Binding}" Value="Neutral"><Setter Property="Text" Value="→"/></DataTrigger>
+                                                                                <DataTrigger Binding="{Binding}" Value="Low"><Setter Property="Text" Value="↓"/></DataTrigger>
+                                                                                <DataTrigger Binding="{Binding}" Value="Very Low"><Setter Property="Text" Value="-"/></DataTrigger>
+                                                                                <DataTrigger Binding="{Binding}" Value="Nice to Have"><Setter Property="Text" Value="--"/></DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                                <TextBlock Text="{Binding}" FontWeight="SemiBold">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding}" Value="Critical"><Setter Property="Foreground" Value="#FF4444"/></DataTrigger>
+                                                                                <DataTrigger Binding="{Binding}" Value="Very High"><Setter Property="Foreground" Value="#FF8800"/></DataTrigger>
+                                                                                <DataTrigger Binding="{Binding}" Value="High"><Setter Property="Foreground" Value="#FFEE00"/></DataTrigger>
+                                                                                <DataTrigger Binding="{Binding}" Value="Neutral"><Setter Property="Foreground" Value="#FFFFFF"/></DataTrigger>
+                                                                                <DataTrigger Binding="{Binding}" Value="Low"><Setter Property="Foreground" Value="#88CCFF"/></DataTrigger>
+                                                                                <DataTrigger Binding="{Binding}" Value="Very Low"><Setter Property="Foreground" Value="#4488FF"/></DataTrigger>
+                                                                                <DataTrigger Binding="{Binding}" Value="Nice to Have"><Setter Property="Foreground" Value="#00CED1"/></DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                        </RadioButton.Content>
+                                                    </RadioButton>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Assignees -->
+                    <TextBlock Text="ASSIGNEES" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,8"/>
+                    <ItemsControl ItemsSource="{Binding ViewModel.Collaborators, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,0,20,25">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding Name}" 
+                                          Foreground="White" Margin="0,0,20,10"
+                                          Click="CheckBox_Click">
+                                    <CheckBox.IsChecked>
+                                       <MultiBinding Converter="{StaticResource StringContainsMultiConverter}" Mode="OneWay">
+                                           <Binding Path="DataContext.ResponsibleUsers" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                           <Binding Path="Name"/>
+                                       </MultiBinding>
+                                   </CheckBox.IsChecked>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Plan Button -->
+                    <TextBlock Text="PLANNING" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,30">
+                        <ToggleButton x:Name="DetailPlanToggle" 
+                                      Command="{Binding ViewModel.SetPlannedIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                      CommandParameter="{Binding}"
+                                      Style="{StaticResource SidebarToggleButton}" HorizontalAlignment="Left" Padding="20,10">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📅 "/>
+                                <TextBlock Text="{Binding SprintTag}" FontWeight="Bold"/>
+                                <TextBlock Text=" (Change)" Foreground="#8B949E" FontSize="10" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </ToggleButton>
+                        <Popup IsOpen="{Binding IsChecked, ElementName=DetailPlanToggle}" StaysOpen="False" Placement="Bottom" PlacementTarget="{Binding ElementName=DetailPlanToggle}" AllowsTransparency="True">
+                            <Border Background="#1A1D2E" BorderBrush="#30363D" BorderThickness="1" CornerRadius="8" Width="300" MaxHeight="350" Margin="0,5,0,0">
+                                <Grid>
+                                     <Grid.RowDefinitions>
+                                         <RowDefinition Height="Auto"/>
+                                         <RowDefinition Height="*"/>
+                                     </Grid.RowDefinitions>
+                                     <TextBlock Text="Select Target Sprint" FontSize="10" Foreground="#8B949E" Margin="12,12,12,8" FontWeight="Bold"/>
+                                     <ScrollViewer Grid.Row="1" Margin="5">
+                                         <ItemsControl ItemsSource="{Binding ViewModel.Sprints, RelativeSource={RelativeSource AncestorType=Window}}">
+                                             <ItemsControl.ItemTemplate>
+                                                 <DataTemplate>
+                                                     <Button Click="SprintSelected_Click" 
+                                                             Command="{Binding ViewModel.AssignToSprintCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                             CommandParameter="{Binding}"
+                                                             Style="{StaticResource SidebarButton}" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2">
+                                                          <StackPanel>
+                                                              <TextBlock Text="{Binding Name}" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
+                                                              <StackPanel Orientation="Horizontal" Opacity="0.6">
+                                                                  <TextBlock Text="{Binding StartDate, StringFormat='{}{0:dd.MM.yyyy}'}" FontSize="10"/>
+                                                                  <TextBlock Text=" - " FontSize="10"/>
+                                                                  <TextBlock Text="{Binding EndDate, StringFormat='{}{0:dd.MM.yyyy}'}" FontSize="10"/>
+                                                              </StackPanel>
+                                                          </StackPanel>
+                                                     </Button>
+                                                 </DataTemplate>
+                                             </ItemsControl.ItemTemplate>
+                                         </ItemsControl>
+                                     </ScrollViewer>
+                                </Grid>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Linked Items (For Ideas and Stories) -->
+                <StackPanel Margin="0,0,0,30">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Type}" Value="Idea"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                <DataTrigger Binding="{Binding Type}" Value="Story"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
+                    <Grid Margin="0,0,0,8">
+                        <TextBlock FontSize="11" FontWeight="Bold" Foreground="#7C4DFF">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="LINKED ITEMS"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Type}" Value="Idea"><Setter Property="Text" Value="LINKED STORIES"/></DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="Story"><Setter Property="Text" Value="LINKED BACKLOG ISSUES"/></DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <Button HorizontalAlignment="Right" Style="{StaticResource SidebarButton}" Padding="10,2"
+                                Command="{Binding ViewModel.AddStoryCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}"
+                                Visibility="{Binding Type, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Idea}">
+                            <TextBlock Text="+ Story" FontSize="10" FontWeight="Bold"/>
+                        </Button>
+                        <Button HorizontalAlignment="Right" Style="{StaticResource SidebarButton}" Padding="10,2"
+                                Command="{Binding ViewModel.AddChildIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}"
+                                Visibility="{Binding Type, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Story}">
+                            <TextBlock Text="+ Issue" FontSize="10" FontWeight="Bold"/>
+                        </Button>
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding Children}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#1C1F30" Margin="0,0,0,8" Padding="12,8" CornerRadius="4">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="💡 " FontSize="16" VerticalAlignment="Center"/>
-                                            <TextBlock Text="{Binding ParentTitle}" Foreground="White" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                        <TextBlock Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="📋"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Type}" Value="Story">
+                                                            <Setter Property="Text" Value="📘"/>
+                                                            <Setter Property="Foreground" Value="#FF5252"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Grid.Column="1" Text="{Binding Description}" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                            <Border Background="#2A2F45" Padding="6,2" CornerRadius="3" Margin="0,0,10,0">
+                                                <TextBlock Text="{Binding Status}" FontSize="9" FontWeight="Bold" Foreground="#8B949E"/>
+                                            </Border>
+                                            
+                                            <Button Style="{StaticResource SidebarButton}" Padding="5" Margin="0,0,5,0"
+                                                    Click="EditChild_Click">
+                                                <TextBlock Text="✏️" FontSize="10"/>
+                                            </Button>
+                                            
+                                            <Button Style="{StaticResource SidebarButton}" Padding="5" Margin="0,0,5,0"
+                                                    Click="UnlinkChild_Click">
+                                                <TextBlock Text="🔗" FontSize="10" Foreground="#FF5252"/>
+                                            </Button>
+
+                                            <Button Style="{StaticResource SidebarButton}" Padding="5"
+                                                    Click="DeleteChild_Click">
+                                                <TextBlock Text="✕" FontSize="10" Foreground="#FF5252"/>
+                                            </Button>
                                         </StackPanel>
-                                        <Button Grid.Column="1" Click="Unlink_Click" Style="{StaticResource SidebarButton}" VerticalAlignment="Center">
-                                            <TextBlock Text="Unlink" Foreground="#FF5252" FontWeight="Bold" FontSize="11"/>
-                                        </Button>
                                     </Grid>
                                 </Border>
-                            </StackPanel>
-
-                            <!-- Unlinked Case -->
-                            <StackPanel Visibility="{Binding ParentTitle, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}">
-                                <TextBlock Text="ARCHITECTURAL CONNECTION" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,15"/>
-                                <ToggleButton x:Name="LinkIdeaToggleButton" Style="{StaticResource SidebarToggleButton}" HorizontalAlignment="Left" Padding="15,8">
-                                    <TextBlock Text="🔗 Link to Strategic Idea" FontSize="11" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
-                                </ToggleButton>
-                                <Popup x:Name="LinkIdeaPopup" IsOpen="{Binding IsChecked, ElementName=LinkIdeaToggleButton}" StaysOpen="False" Placement="Bottom" PlacementTarget="{Binding ElementName=LinkIdeaToggleButton}" AllowsTransparency="True">
-                                    <Border Background="#1A1D2E" BorderBrush="#30363D" BorderThickness="1" CornerRadius="8" Width="300" MaxHeight="350" Margin="0,5,0,0">
-                                        <Grid>
-                                             <Grid.RowDefinitions>
-                                                 <RowDefinition Height="Auto"/>
-                                                 <RowDefinition Height="*"/>
-                                             </Grid.RowDefinitions>
-                                             <TextBlock Text="Select Strategic Idea" FontSize="10" Foreground="#8B949E" Margin="12,12,12,8" FontWeight="Bold"/>
-                                             <ScrollViewer Grid.Row="1" Margin="5">
-                                                 <ItemsControl ItemsSource="{Binding ViewModel.PotentialParents, RelativeSource={RelativeSource AncestorType=Window}}">
-                                                     <ItemsControl.ItemTemplate>
-                                                         <DataTemplate>
-                                                             <Button Click="IdeaSelected_Click" Style="{StaticResource SidebarButton}" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2">
-                                                                 <StackPanel Orientation="Horizontal">
-                                                                     <TextBlock Text="💡 " FontSize="12" Opacity="0.7"/>
-                                                                     <TextBlock Text="{Binding Description}" Foreground="White" FontSize="12" TextWrapping="Wrap"/>
-                                                                 </StackPanel>
-                                                             </Button>
-                                                         </DataTemplate>
-                                                     </ItemsControl.ItemTemplate>
-                                                 </ItemsControl>
-                                             </ScrollViewer>
-                                        </Grid>
-                                    </Border>
-                                </Popup>
-                            </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
 
         <!-- Footer -->
-        <Border Grid.Row="2" Background="#141724" Padding="20" BorderBrush="#30363D" BorderThickness="0,1,0,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Close" Style="{StaticResource SidebarButton}" Click="Close_Click" Margin="0,0,10,0" Width="100"/>
-                <Button Content="Save Changes" Style="{StaticResource AccentButton}" Click="Save_Click" Width="150"/>
-            </StackPanel>
+        <Border Grid.Row="2" Background="#0F111A" Padding="20" BorderBrush="#30363D" BorderThickness="0,1,0,0">
+            <Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                     <Button Click="Archive_Click"
+                             Style="{StaticResource SidebarButton}" Width="120" Margin="0,0,10,0">
+                         <StackPanel Orientation="Horizontal">
+                             <TextBlock Text="📁 "/>
+                             <TextBlock Text="Archive"/>
+                         </StackPanel>
+                     </Button>
+                     <Button Click="Delete_Click"
+                             Style="{StaticResource SidebarButton}" Width="120" Margin="0,0,10,0">
+                         <StackPanel Orientation="Horizontal">
+                             <TextBlock Text="✕ " Foreground="#FF5252"/>
+                             <TextBlock Text="Delete" Foreground="#FF5252"/>
+                         </StackPanel>
+                     </Button>
+
+                      <!-- Link/Unlink Action -->
+                      <Grid Margin="10,0,0,0">
+                          <Grid.Style>
+                              <Style TargetType="Grid">
+                                  <Style.Triggers>
+                                      <DataTrigger Binding="{Binding Type}" Value="Idea"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                  </Style.Triggers>
+                              </Style>
+                          </Grid.Style>
+                          <Button Click="Unlink_Click" Style="{StaticResource SidebarButton}" Width="120"
+                                  Visibility="{Binding ParentFriendlyId, Converter={StaticResource NullToVisibilityConverter}}">
+                              <StackPanel Orientation="Horizontal">
+                                  <TextBlock Text="🔗 " Foreground="#FF5252"/>
+                                  <TextBlock Text="Unlink Parent" Foreground="#FF5252"/>
+                              </StackPanel>
+                          </Button>
+
+                          <Grid Visibility="{Binding ParentFriendlyId, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}">
+                              <ToggleButton x:Name="FooterLinkToggle" Style="{StaticResource SidebarToggleButton}" Width="120">
+                                  <StackPanel Orientation="Horizontal">
+                                      <TextBlock Text="🔗 " Foreground="{StaticResource AccentBrush}"/>
+                                      <TextBlock Text="Link Parent" Foreground="{StaticResource AccentBrush}"/>
+                                  </StackPanel>
+                              </ToggleButton>
+                              <Popup IsOpen="{Binding IsChecked, ElementName=FooterLinkToggle}" StaysOpen="False" Placement="Top" PlacementTarget="{Binding ElementName=FooterLinkToggle}" AllowsTransparency="True">
+                                  <Border Background="#1A1D2E" BorderBrush="#30363D" BorderThickness="1" CornerRadius="8" Width="300" MaxHeight="350" Margin="0,0,0,5">
+                                      <Grid>
+                                           <Grid.RowDefinitions>
+                                               <RowDefinition Height="Auto"/>
+                                               <RowDefinition Height="*"/>
+                                           </Grid.RowDefinitions>
+                                            <TextBlock FontSize="10" Foreground="#8B949E" Margin="12,12,12,8" FontWeight="Bold">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="Select Parent Story"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Type}" Value="Story">
+                                                                <Setter Property="Text" Value="Select Parent Idea"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                           <ScrollViewer Grid.Row="1" Margin="5">
+                                               <ItemsControl ItemsSource="{Binding ViewModel.PotentialParents, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                   <ItemsControl.ItemTemplate>
+                                                       <DataTemplate>
+                                                           <Button Click="IdeaSelected_Click" Style="{StaticResource SidebarButton}" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2">
+                                                               <StackPanel Orientation="Horizontal">
+                                                                   <TextBlock FontSize="12" Opacity="0.9" Margin="0,0,8,0">
+                                                                       <TextBlock.Style>
+                                                                           <Style TargetType="TextBlock">
+                                                                               <Setter Property="Text" Value="📘"/>
+                                                                               <Setter Property="Foreground" Value="#FF5252"/>
+                                                                               <Style.Triggers>
+                                                                                   <DataTrigger Binding="{Binding Type}" Value="Idea">
+                                                                                       <Setter Property="Text" Value="💡"/>
+                                                                                       <Setter Property="Foreground" Value="#FFD740"/>
+                                                                                   </DataTrigger>
+                                                                               </Style.Triggers>
+                                                                           </Style>
+                                                                       </TextBlock.Style>
+                                                                   </TextBlock>
+                                                                   <TextBlock Text="{Binding Description}" FontSize="12" TextWrapping="Wrap">
+                                                                       <TextBlock.Style>
+                                                                           <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                                               <Setter Property="Foreground" Value="White"/>
+                                                                               <Style.Triggers>
+                                                                                   <DataTrigger Binding="{Binding Type}" Value="Idea">
+                                                                                       <Setter Property="Foreground" Value="#FFD740"/>
+                                                                                   </DataTrigger>
+                                                                                   <DataTrigger Binding="{Binding Type}" Value="Story">
+                                                                                       <Setter Property="Foreground" Value="#FF5252"/>
+                                                                                   </DataTrigger>
+                                                                               </Style.Triggers>
+                                                                           </Style>
+                                                                       </TextBlock.Style>
+                                                                   </TextBlock>
+                                                               </StackPanel>
+                                                           </Button>
+                                                       </DataTemplate>
+                                                   </ItemsControl.ItemTemplate>
+                                               </ItemsControl>
+                                           </ScrollViewer>
+                                      </Grid>
+                                  </Border>
+                              </Popup>
+                          </Grid>
+                      </Grid>
+                </StackPanel>
+                
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Close" Style="{StaticResource SidebarButton}" Click="Close_Click" Margin="0,0,10,0" Width="100"/>
+                    <Button Content="Save Changes" Style="{StaticResource AccentButton}" Click="Save_Click" Width="150"/>
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Window>

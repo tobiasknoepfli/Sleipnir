@@ -147,6 +147,15 @@ namespace Sleipnir.App.Models
 
         private string? _sprintTag;
         public string? SprintTag { get => _sprintTag; set { _sprintTag = value; OnPropertyChanged(); } }
+        
+        private int? _parentFriendlyId;
+        public int? ParentFriendlyId { get => _parentFriendlyId; set { _parentFriendlyId = value; OnPropertyChanged(); OnPropertyChanged(nameof(ParentIdeaNumber)); OnPropertyChanged(nameof(ParentStoryNumber)); } }
+        
+        public string? ParentIdeaNumber => ParentFriendlyId.HasValue ? $"Idea #{ParentFriendlyId.Value:D5}" : null;
+        
+        private int? _parentStoryFriendlyId;
+        public int? ParentStoryFriendlyId { get => _parentStoryFriendlyId; set { _parentStoryFriendlyId = value; OnPropertyChanged(); OnPropertyChanged(nameof(ParentStoryNumber)); } }
+        public string? ParentStoryNumber => ParentStoryFriendlyId.HasValue ? $"Story #{ParentStoryFriendlyId.Value:D5}" : null;
 
         // Formatted title: Program / Sub1 / Sub2 : Description
         public string FormattedTitle
@@ -156,13 +165,50 @@ namespace Sleipnir.App.Models
                 var subs = SubComponents.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
                 var subPart = subs.Length > 0 ? " / " + string.Join(" / ", subs) : "";
                 var componentPart = string.IsNullOrWhiteSpace(ProgramComponent) ? "" : ProgramComponent;
-                
+
                 if (string.IsNullOrWhiteSpace(componentPart) && string.IsNullOrWhiteSpace(subPart))
                     return Description;
 
                 return $"{componentPart}{subPart} : {Description}";
             }
         }
+
+        public string LocationTag => Status == "Archived" ? $"{Category} Archive" : Category;
+        public string FullLocationTag => ParentFriendlyId.HasValue ? $"{LocationTag} | {SprintTag}" : LocationTag;
+
+        public string IdeaNumber => $"Idea #{FriendlyId:D5}";
+        public string StoryNumber => $"Story #{FriendlyId:D5}";
+        public string IssueNumber => $"Issue #{FriendlyId:D5}";
+
+        public string TypeTag => Type switch
+        {
+            "Bug" => "🐞 Bug",
+            "Feature" => "✨ Feature",
+            "Patch" => "🛠️ Patch",
+            "Overhaul" => "🏗️ Overhaul",
+            "Alteration" => "⚙️ Alteration",
+            "Story" => "📘 Story",
+            "Idea" => "💡 Idea",
+            _ => $"📋 {Type}"
+        };
+
+        public string PriorityTag => Priority switch
+        {
+            "Critical" => "‼ CRITICAL",
+            "Very High" => "❗ VERY HIGH",
+            "High" => "↑ HIGH",
+            "Neutral" => "→ NEUTRAL",
+            "Low" => "↓ LOW",
+            "Very Low" => "- VERY LOW",
+            "Nice to Have" => "-- NICE TO HAVE",
+            _ => $"📋 {Priority.ToUpper()}"
+        };
+
+        public int StoryCount => Children.Count;
+        public int IssueCount => Children.Count;
+
+        [Column("friendly_id")]
+        public int FriendlyId { get; set; }
 
         public string AgeString
         {
@@ -185,7 +231,11 @@ namespace Sleipnir.App.Models
             }
         }
 
-        public void RefreshArchivability() => OnPropertyChanged(nameof(CanBeArchived));
+        public void RefreshArchivability()
+        {
+            OnPropertyChanged(nameof(CanBeArchived));
+            OnPropertyChanged(nameof(StoryCount));
+        }
     }
 
     [Table("issue_logs")]
