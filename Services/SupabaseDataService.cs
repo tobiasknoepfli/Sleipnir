@@ -28,9 +28,9 @@ namespace Sleipnir.App.Services
             return response.Models ?? new List<Project>();
         }
 
-        public async Task<Project> CreateProjectAsync(string name, string description, string? logoUrl = null)
+        public async Task<Project> CreateProjectAsync(string name, string description, string? logoUrl = null, string? logoData = null)
         {
-            var project = new Project { Name = name, Description = description, LogoUrl = logoUrl };
+            var project = new Project { Name = name, Description = description, LogoUrl = logoUrl, LogoData = logoData };
             var response = await _client.From<Project>().Insert(project);
             return response.Model ?? project;
         }

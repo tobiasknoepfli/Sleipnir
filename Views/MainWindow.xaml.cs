@@ -132,6 +132,24 @@ namespace Sleipnir.App.Views
                 user.IsPasswordRevealed = !user.IsPasswordRevealed;
             }
         }
-    }
+        private async void IssueTitle_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox tb && tb.DataContext is Issue issue && DataContext is MainViewModel vm)
+            {
+                await vm.UpdateIssueAsync(issue);
+            }
+        }
 
+        private void IssueTitle_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && sender is TextBox tb)
+            {
+                // Remove focus to trigger LostFocus and thus save
+                Keyboard.ClearFocus();
+                // Alternatively, find a focusable parent to move focus to
+                this.Focus();
+                e.Handled = true;
+            }
+        }
+    }
 }

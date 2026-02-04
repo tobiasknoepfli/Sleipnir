@@ -160,4 +160,57 @@ namespace Sleipnir.App.Utils
         }
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotImplementedException();
     }
+    public class ProjectLogoConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            // values[0] is LogoUrl, values[1] is LogoData
+            if (values.Length >= 2 && values[1] is string base64 && !string.IsNullOrEmpty(base64))
+            {
+                try
+                {
+                    byte[] binaryData = System.Convert.FromBase64String(base64);
+                    var bi = new System.Windows.Media.Imaging.BitmapImage();
+                    bi.BeginInit();
+                    bi.StreamSource = new System.IO.MemoryStream(binaryData);
+                    bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                    bi.EndInit();
+                    return bi;
+                }
+                catch { }
+            }
+            
+            if (values.Length >= 1 && values[0] is string url && !string.IsNullOrEmpty(url))
+            {
+                try
+                {
+                    var bi = new System.Windows.Media.Imaging.BitmapImage();
+                    bi.BeginInit();
+                    bi.UriSource = new Uri(url, UriKind.RelativeOrAbsolute);
+                    bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                    bi.EndInit();
+                    return bi;
+                }
+                catch { }
+            }
+
+            return null!;
+        }
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => null!;
+    }
+
+    public class ProjectLogoVisibilityConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            bool hasUrl = values.Length >= 1 && values[0] is string url && !string.IsNullOrEmpty(url);
+            bool hasData = values.Length >= 2 && values[1] is string data && !string.IsNullOrEmpty(data);
+            
+            bool hasImage = hasUrl || hasData;
+            if (parameter?.ToString() == "Inverse") hasImage = !hasImage;
+            
+            return hasImage ? Visibility.Visible : Visibility.Collapsed;
+        }
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => null!;
+    }
 }

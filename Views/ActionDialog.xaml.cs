@@ -41,7 +41,7 @@ namespace Sleipnir.App.Views
         {
             var color = type switch
             {
-                "Idea" => "#2b2402",
+                "Epic" => "#2b2402",
                 "Story" => "#250100",
                 _ => "#000129"
             };

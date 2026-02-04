@@ -9,6 +9,8 @@
             <utils:BooleanToOpacityConverter x:Key="BooleanToOpacityConverter" />
             <utils:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
             <utils:BooleanToDoubleConverter x:Key="BooleanToDoubleConverter" />
+            <utils:ProjectLogoConverter x:Key="ProjectLogoConverter" />
+            <utils:ProjectLogoVisibilityConverter x:Key="ProjectLogoVisibilityConverter" />
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>

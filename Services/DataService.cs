@@ -8,7 +8,7 @@ namespace Sleipnir.App.Services
     public interface IDataService
     {
         Task<List<Project>> GetProjectsAsync();
-        Task<Project> CreateProjectAsync(string name, string description, string? logoUrl = null);
+        Task<Project> CreateProjectAsync(string name, string description, string? logoUrl = null, string? logoData = null);
         Task UpdateProjectAsync(Project project);
         Task DeleteProjectAsync(Guid projectId);
         
@@ -97,9 +97,9 @@ namespace Sleipnir.App.Services
             _issues.Add(new Issue {
                 ProjectId = p1.Id,
                 ProgramComponent = "UI",
-                Description = "Glassmorphism Sidebar Idea",
+                Description = "Glassmorphism Sidebar Epic",
                 LongDescription = "Think about adding a blur effect to the sidebar for a more modern look.",
-                Type = "Idea",
+                Type = "Epic",
                 Category = "Backlog",
                 Status = "Open",
                 Priority = "Nice to Have",
@@ -148,9 +148,9 @@ namespace Sleipnir.App.Services
 
         public Task<List<Project>> GetProjectsAsync() => Task.FromResult(_projects);
         
-        public Task<Project> CreateProjectAsync(string name, string description, string? logoUrl = null)
+        public Task<Project> CreateProjectAsync(string name, string description, string? logoUrl = null, string? logoData = null)
         {
-            var p = new Project { Name = name, Description = description, LogoUrl = logoUrl };
+            var p = new Project { Name = name, Description = description, LogoUrl = logoUrl, LogoData = logoData };
             _projects.Add(p);
             return Task.FromResult(p);
         }

@@ -87,7 +87,7 @@
                     <StackPanel>
                         <CheckBox IsChecked="{Binding CanAccessBacklog}" Content="Backlog &amp; Board" Foreground="White" Margin="0,0,0,12"/>
                         <CheckBox IsChecked="{Binding CanAccessPipeline}" Content="Pipeline (Stories)" Foreground="White" Margin="0,0,0,12"/>
-                        <CheckBox IsChecked="{Binding CanAccessHub}" Content="Hub (Ideas)" Foreground="White" Margin="0,0,0,12"/>
+                        <CheckBox IsChecked="{Binding CanAccessHub}" Content="Hub (Epics)" Foreground="White" Margin="0,0,0,12"/>
                         <CheckBox IsChecked="{Binding CanAccessSettings}" Content="Settings &amp; Admin Actions" Foreground="White"/>
                     </StackPanel>
                 </Border>

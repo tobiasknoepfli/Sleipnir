@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Windows;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -111,7 +112,7 @@ namespace Sleipnir.App.ViewModels
 
         [ObservableProperty]
         private ObservableCollection<Collaborator> _collaborators = new();
-        public List<string> Kinds { get; } = new() { "Bug", "Feature", "Patch", "Overhaul", "Alteration", "Story", "Idea" };
+        public List<string> Kinds { get; } = new() { "Bug", "Feature", "Patch", "Overhaul", "Alteration", "Story", "Epic" };
         public List<string> FilterKinds { get; }
 
         public List<string> Priorities { get; } = new() { "Critical", "Very High", "High", "Neutral", "Low", "Very Low", "Nice to Have" };
@@ -493,7 +494,7 @@ namespace Sleipnir.App.ViewModels
             SaveProjectCommand = new AsyncRelayCommand(SaveProjectAsync);
             CancelProjectModalCommand = new RelayCommand(() => IsProjectModalVisible = false);
             BrowseLogoCommand = new RelayCommand(BrowseLogo);
-            ClearLogoCommand = new RelayCommand(() => NewProjectLogoUrl = "");
+            ClearLogoCommand = new RelayCommand(() => { NewProjectLogoUrl = ""; if (SelectedProject != null) SelectedProject.LogoData = null; });
 
             AddStoryCommand = new AsyncRelayCommand<Issue>(AddStoryAsync);
             AddChildIssueCommand = new AsyncRelayCommand<Issue>(AddChildIssueAsync);
@@ -647,16 +648,16 @@ namespace Sleipnir.App.ViewModels
             // Clear children on all issues first
             foreach (var issue in _allProjectIssues) issue.Children.Clear();
 
-            // Assign Friendly IDs to Ideas
-            var ideas = _allProjectIssues.Where(i => i.Type == "Idea").OrderBy(i => i.CreatedAt).ToList();
-            for (int i = 0; i < ideas.Count; i++) ideas[i].FriendlyId = i + 1;
+            // Assign Friendly IDs to Epics
+            var epics = _allProjectIssues.Where(i => i.Type == "Epic").OrderBy(i => i.CreatedAt).ToList();
+            for (int i = 0; i < epics.Count; i++) epics[i].FriendlyId = i + 1;
 
             // Assign Friendly IDs to Stories
             var stories = _allProjectIssues.Where(i => i.Type == "Story").OrderBy(i => i.CreatedAt).ToList();
             for (int i = 0; i < stories.Count; i++) stories[i].FriendlyId = i + 1;
 
             // Assign Friendly IDs to Issues (Bugs/Features)
-            var otherIssues = _allProjectIssues.Where(i => i.Type != "Idea" && i.Type != "Story").OrderBy(i => i.CreatedAt).ToList();
+            var otherIssues = _allProjectIssues.Where(i => i.Type != "Epic" && i.Type != "Story").OrderBy(i => i.CreatedAt).ToList();
             for (int i = 0; i < otherIssues.Count; i++) otherIssues[i].FriendlyId = i + 1;
 
             // Build hierarchy and tags
@@ -677,25 +678,35 @@ namespace Sleipnir.App.ViewModels
                                  ?? ArchivedSprints.FirstOrDefault(s => s.Id == issue.SprintId);
                     issue.SprintTag = sprint != null ? $"{sprint.Name} | {issue.Status}" : $"{issue.Status}";
                 }
-            }
-
-            // Build Hierarchy (Stories -> Ideas)
-            foreach (var story in _allProjectIssues.Where(i => i.Type == "Story"))
-            {
-                if (story.ParentIssueId.HasValue)
+                
+                // Pre-populate Parent titles if available
+                if (issue.ParentIssueId.HasValue)
                 {
-                    var idea = _allProjectIssues.FirstOrDefault(p => p.Id == story.ParentIssueId);
-                    if (idea != null)
+                    var parent = _allProjectIssues.FirstOrDefault(p => p.Id == issue.ParentIssueId);
+                    if (parent != null)
                     {
-                        idea.Children.Add(story);
-                        story.ParentTitle = idea.Description;
-                        story.ParentFriendlyId = idea.FriendlyId;
+                        issue.ParentTitle = parent.Description;
                     }
                 }
             }
 
-            // Build Hierarchy (Backlog Items -> Stories/Ideas)
-            foreach (var issue in _allProjectIssues.Where(i => i.Type != "Story" && i.Type != "Idea"))
+            // Build Hierarchy (Stories -> Epics)
+            foreach (var story in _allProjectIssues.Where(i => i.Type == "Story"))
+            {
+                if (story.ParentIssueId.HasValue)
+                {
+                    var epic = _allProjectIssues.FirstOrDefault(p => p.Id == story.ParentIssueId);
+                    if (epic != null)
+                    {
+                        epic.Children.Add(story);
+                        story.ParentTitle = epic.Description;
+                        story.ParentFriendlyId = epic.FriendlyId;
+                    }
+                }
+            }
+
+            // Build Hierarchy (Backlog Items -> Stories/Epics)
+            foreach (var issue in _allProjectIssues.Where(i => i.Type != "Story" && i.Type != "Epic"))
             {
                 if (issue.ParentIssueId.HasValue)
                 {
@@ -708,13 +719,13 @@ namespace Sleipnir.App.ViewModels
                         if (parent.Type == "Story")
                         {
                             issue.ParentStoryFriendlyId = parent.FriendlyId;
-                            // Trace back to Idea if the Story has one
+                            // Trace back to Epic if the Story has one
                             if (parent.ParentFriendlyId.HasValue)
                             {
                                 issue.ParentFriendlyId = parent.ParentFriendlyId;
                             }
                         }
-                        else if (parent.Type == "Idea")
+                        else if (parent.Type == "Epic")
                         {
                             issue.ParentFriendlyId = parent.FriendlyId;
                         }
@@ -725,7 +736,7 @@ namespace Sleipnir.App.ViewModels
             // Refresh archivability
             foreach (var issue in _allProjectIssues)
             {
-                if (issue.Type == "Idea" || issue.Type == "Story") issue.RefreshArchivability();
+                if (issue.Type == "Epic" || issue.Type == "Story") issue.RefreshArchivability();
             }
 
             var filtered = _allProjectIssues
@@ -768,7 +779,7 @@ namespace Sleipnir.App.ViewModels
                     (i.Description?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (i.LongDescription?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (i.IssueNumber?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (i.IdeaNumber?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (i.EpicNumber?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (i.StoryNumber?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (i.ResponsibleUsers?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false)
                 ).ToList();
@@ -874,6 +885,8 @@ namespace Sleipnir.App.ViewModels
                 }
                 else
                 {
+                    _allProjectIssues.Clear();
+                    RefreshCategorizedIssues();
                     SelectedProject = null;
                     OpenProjectModal();
                 }
@@ -892,16 +905,36 @@ namespace Sleipnir.App.ViewModels
                     SelectedProject.Name = NewProjectName;
                     SelectedProject.Description = NewProjectDescription;
                     SelectedProject.LogoUrl = string.IsNullOrWhiteSpace(NewProjectLogoUrl) ? null : NewProjectLogoUrl;
+                    
+                    // Save image data if it's a local file
+                    if (!string.IsNullOrEmpty(NewProjectLogoUrl) && File.Exists(NewProjectLogoUrl))
+                    {
+                        var bytes = File.ReadAllBytes(NewProjectLogoUrl);
+                        SelectedProject.LogoData = Convert.ToBase64String(bytes);
+                    }
+
                     await _dataService.UpdateProjectAsync(SelectedProject);
                     OnPropertyChanged(nameof(SelectedProject));
                 }
                 else
                 {
-                    var p = await _dataService.CreateProjectAsync(NewProjectName, NewProjectDescription, NewProjectLogoUrl);
-                    Projects.Add(p);
-                    SelectedProject = p;
+                    var p = new Project { Name = NewProjectName, Description = NewProjectDescription, LogoUrl = NewProjectLogoUrl };
+                    if (!string.IsNullOrEmpty(NewProjectLogoUrl) && File.Exists(NewProjectLogoUrl))
+                    {
+                        var bytes = File.ReadAllBytes(NewProjectLogoUrl);
+                        p.LogoData = Convert.ToBase64String(bytes);
+                    }
+                    
+                    var created = await _dataService.CreateProjectAsync(p.Name, p.Description, p.LogoUrl, p.LogoData);
+
+                    Projects.Add(created);
+                    SelectedProject = created;
                 }
                 IsProjectModalVisible = false;
+            }
+            catch (Exception ex)
+            {
+                CustomDialogWindow.Show("Error", "Failed to save project: " + ex.Message, CustomDialogWindow.DialogType.Error);
             }
             finally
             {
@@ -1042,10 +1075,10 @@ namespace Sleipnir.App.ViewModels
             {
                 await _dataService.UpdateIssueAsync(issue);
 
-                // Auto-close Idea logic
+                // Auto-close Epic logic
                 if (issue.Type == "Story" && issue.ParentIssueId.HasValue)
                 {
-                    await CheckAndCloseParentIdea(issue.ParentIssueId.Value);
+                    await CheckAndCloseParentEpic(issue.ParentIssueId.Value);
                 }
 
                 RefreshCategorizedIssues();
@@ -1064,7 +1097,7 @@ namespace Sleipnir.App.ViewModels
                 return;
             }
 
-            // If creating an idea, make sure we show the active Hub (not archive)
+            // If creating an epic, make sure we show the active Hub (not archive)
             if (SelectedCategory == "Hub")
             {
                 ShowHubArchive = false;
@@ -1077,7 +1110,7 @@ namespace Sleipnir.App.ViewModels
                 Description = "Descriptive Title",
                 Category = SelectedCategory,
                 Status = status,
-                Type = SelectedCategory == "Hub" ? "Idea" : (SelectedCategory == "Pipeline" ? "Story" : "Bug"),
+                Type = SelectedCategory == "Hub" ? "Epic" : (SelectedCategory == "Pipeline" ? "Story" : "Bug"),
                 SprintId = (SelectedCategory == "Backlog") ? SelectedSprint?.Id : null
             };
 
@@ -1088,15 +1121,15 @@ namespace Sleipnir.App.ViewModels
             OpenIssueDetail(issue);
         }
 
-        private async Task AddStoryAsync(Issue? idea)
+        private async Task AddStoryAsync(Issue? epic)
         {
-            if (idea == null || SelectedProject == null) return;
+            if (epic == null || SelectedProject == null) return;
 
             var story = new Issue
             {
                 ProjectId = SelectedProject.Id,
-                ParentIssueId = idea.Id,
-                ProgramComponent = idea.ProgramComponent,
+                ParentIssueId = epic.Id,
+                ProgramComponent = epic.ProgramComponent,
                 Description = "Descriptive Title",
                 Category = "Pipeline",
                 Type = "Story",
@@ -1223,21 +1256,21 @@ namespace Sleipnir.App.ViewModels
             issue.ParentIssueId = null;
             await _dataService.UpdateIssueAsync(issue);
             
-            if (oldParentId.HasValue) await CheckAndCloseParentIdea(oldParentId.Value);
+            if (oldParentId.HasValue) await CheckAndCloseParentEpic(oldParentId.Value);
 
             RefreshCategorizedIssues();
         }
 
-        private async Task CheckAndCloseParentIdea(Guid parentId)
+        private async Task CheckAndCloseParentEpic(Guid parentId)
         {
-            var parentIdea = _allProjectIssues.FirstOrDefault(i => i.Id == parentId && i.Type == "Idea");
-            if (parentIdea != null && parentIdea.Status != "Finished")
+            var parentEpic = _allProjectIssues.FirstOrDefault(i => i.Id == parentId && i.Type == "Epic");
+            if (parentEpic != null && parentEpic.Status != "Finished")
             {
                 var allChildren = _allProjectIssues.Where(i => i.ParentIssueId == parentId && i.Type == "Story").ToList();
                 if (allChildren.Count > 0 && allChildren.All(c => c.Status == "Finished"))
                 {
-                    parentIdea.Status = "Finished";
-                    await _dataService.UpdateIssueAsync(parentIdea);
+                    parentEpic.Status = "Finished";
+                    await _dataService.UpdateIssueAsync(parentEpic);
                 }
             }
         }
@@ -1254,11 +1287,11 @@ namespace Sleipnir.App.ViewModels
             PotentialParents.Clear();
             if (issue.Type == "Story")
             {
-                // Stories link to Ideas
-                var ideas = _allProjectIssues.Where(i => i.Type == "Idea" && i.Status != "Archived" && i.Id != issue.Id).ToList();
-                foreach (var idea in ideas) PotentialParents.Add(idea);
+                // Stories link to Epics
+                var epics = _allProjectIssues.Where(i => i.Type == "Epic" && i.Status != "Archived" && i.Id != issue.Id).ToList();
+                foreach (var epic in epics) PotentialParents.Add(epic);
             }
-            else if (issue.Type != "Idea")
+            else if (issue.Type != "Epic")
             {
                 // Issues can ONLY be linked to stories
                 var parents = _allProjectIssues.Where(i => i.Type == "Story" 
@@ -1301,7 +1334,7 @@ namespace Sleipnir.App.ViewModels
             await _dataService.DeleteIssueAsync(story.Id);
             _allProjectIssues.Remove(story);
 
-            if (oldParentId.HasValue) await CheckAndCloseParentIdea(oldParentId.Value);
+            if (oldParentId.HasValue) await CheckAndCloseParentEpic(oldParentId.Value);
 
             RefreshCategorizedIssues();
         }
@@ -1318,10 +1351,10 @@ namespace Sleipnir.App.ViewModels
         {
             if (issue == null) return;
 
-            // Idea/Story logic
-            if ((issue.Type == "Idea" || issue.Type == "Story") && issue.Children.Any())
+            // Epic/Story logic
+            if ((issue.Type == "Epic" || issue.Type == "Story") && issue.Children.Any())
             {
-                var itemPlural = issue.Type == "Idea" ? "stories" : "backlog issues";
+                var itemPlural = issue.Type == "Epic" ? "stories" : "backlog issues";
                 var result = CustomDialogWindow.Show(
                     "Archive Linked Items",
                     $"This {issue.Type} has linked {itemPlural}. What should happen to them?",
@@ -1358,10 +1391,10 @@ namespace Sleipnir.App.ViewModels
         {
             if (issue == null) return;
 
-            // Idea/Story logic
-            if ((issue.Type == "Idea" || issue.Type == "Story") && issue.Children.Any())
+            // Epic/Story logic
+            if ((issue.Type == "Epic" || issue.Type == "Story") && issue.Children.Any())
             {
-                var itemPlural = issue.Type == "Idea" ? "stories" : "backlog issues";
+                var itemPlural = issue.Type == "Epic" ? "stories" : "backlog issues";
                 var result = CustomDialogWindow.Show(
                     "Delete Linked Items",
                     $"This {issue.Type} has linked {itemPlural}. What should happen to them?",

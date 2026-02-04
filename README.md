@@ -7,7 +7,7 @@ A modern, multi-user Jira-style desktop application built with C# and WPF.
 - **3-Lane Dashboard**: 
     - **Backlog**: Dedicated to bug tracking.
     - **Pipeline**: Visualized feature development.
-    - **The Hub**: Brainstorming space for ideas and stories.
+    - **The Hub**: Brainstorming space for epics and stories.
 - **Cloud Powered**: Built to work with Supabase (PostgreSQL) for free, multi-user web-hosted data.
 - **Premium UI**: Sleek dark theme with MahApps.Metro and custom glassmorphism styles.
 
@@ -29,7 +29,7 @@ create table issues (
   project_id uuid references projects(id) on delete cascade,
   title text not null,
   description text,
-  type text, -- 'Bug', 'Feature', 'Idea'
+  type text, -- 'Bug', 'Feature', 'Epic'
   category text, -- 'Backlog', 'Pipeline', 'Hub'
   status text,
   priority int default 1,

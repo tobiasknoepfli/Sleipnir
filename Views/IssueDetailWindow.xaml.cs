@@ -43,7 +43,7 @@ namespace Sleipnir.App.Views
             Close();
         }
 
-        private void IdeaSelected_Click(object sender, RoutedEventArgs e)
+        private void EpicSelected_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.DataContext is Issue parent)
             {
@@ -98,9 +98,9 @@ namespace Sleipnir.App.Views
 
         private async void Archive_Click(object sender, RoutedEventArgs e)
         {
-            if ((_issue.Type == "Idea" || _issue.Type == "Story") && _issue.Children.Any())
+            if ((_issue.Type == "Epic" || _issue.Type == "Story") && _issue.Children.Any())
             {
-                var itemType = _issue.Type == "Idea" ? "stories" : "issues";
+                var itemType = _issue.Type == "Epic" ? "stories" : "issues";
                 var result = ActionDialog.Show($"Archive {_issue.Type}", 
                     $"This {_issue.Type} has linked {itemType}. What do you want to do with them?", 
                     _issue.Type, "Archive issues", "Unlink issues");
@@ -130,9 +130,9 @@ namespace Sleipnir.App.Views
 
         private async void Delete_Click(object sender, RoutedEventArgs e)
         {
-            if ((_issue.Type == "Idea" || _issue.Type == "Story") && _issue.Children.Any())
+            if ((_issue.Type == "Epic" || _issue.Type == "Story") && _issue.Children.Any())
             {
-                var itemType = _issue.Type == "Idea" ? "stories" : "issues";
+                var itemType = _issue.Type == "Epic" ? "stories" : "issues";
                 var result = ActionDialog.Show($"Delete {_issue.Type}", 
                     $"This {_issue.Type} has linked {itemType}. What do you want to do with them?", 
                     _issue.Type, "Delete issues", "Unlink issues");

@@ -32,6 +32,10 @@ namespace Sleipnir.App.Models
         [Column("logo_url")]
         public string? LogoUrl { get => _logoUrl; set { _logoUrl = value; OnPropertyChanged(); } }
 
+        [Column("logo_data")]
+        public string? LogoData { get => _logoData; set { _logoData = value; OnPropertyChanged(); } }
+        private string? _logoData;
+
         public override string ToString() => Name;
     }
 
@@ -118,7 +122,7 @@ namespace Sleipnir.App.Models
         public string LongDescription { get => _longDescription; set { _longDescription = value; OnPropertyChanged(); } }
 
         [Column("type")]
-        public string Type { get; set; } = "Bug"; // Bug, Feature, Idea, Story
+        public string Type { get; set; } = "Bug"; // Bug, Feature, Epic, Story
 
         [Column("category")]
         public string Category { get; set; } = "Backlog"; // Backlog, Pipeline, Hub
@@ -137,6 +141,22 @@ namespace Sleipnir.App.Models
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        [Column("persona")]
+        public string Persona { get => _persona; set { _persona = value; OnPropertyChanged(); } }
+        private string _persona = string.Empty;
+
+        [Column("purpose")]
+        public string Purpose { get => _purpose; set { _purpose = value; OnPropertyChanged(); } }
+        private string _purpose = string.Empty;
+
+        [Column("goal")]
+        public string Goal { get => _goal; set { _goal = value; OnPropertyChanged(); } }
+        private string _goal = string.Empty;
+
+        [Column("definition_of_done")]
+        public string DefinitionOfDone { get => _definitionOfDone; set { _definitionOfDone = value; OnPropertyChanged(); } }
+        private string _definitionOfDone = string.Empty;
 
         // UI support for hierarchy
         private System.Collections.ObjectModel.ObservableCollection<Issue> _children = new();
@@ -157,10 +177,10 @@ namespace Sleipnir.App.Models
         
         private int? _parentFriendlyId;
         [JsonIgnore]
-        public int? ParentFriendlyId { get => _parentFriendlyId; set { _parentFriendlyId = value; OnPropertyChanged(); OnPropertyChanged(nameof(ParentIdeaNumber)); OnPropertyChanged(nameof(ParentStoryNumber)); } }
+        public int? ParentFriendlyId { get => _parentFriendlyId; set { _parentFriendlyId = value; OnPropertyChanged(); OnPropertyChanged(nameof(ParentEpicNumber)); OnPropertyChanged(nameof(ParentStoryNumber)); } }
         
         [JsonIgnore]
-        public string? ParentIdeaNumber => ParentFriendlyId.HasValue ? $"Idea #{ParentFriendlyId.Value:D5}" : null;
+        public string? ParentEpicNumber => ParentFriendlyId.HasValue ? $"Epic #{ParentFriendlyId.Value:D5}" : null;
         
         private int? _parentStoryFriendlyId;
         [JsonIgnore]
@@ -191,7 +211,7 @@ namespace Sleipnir.App.Models
         public string FullLocationTag => ParentFriendlyId.HasValue ? $"{LocationTag} | {SprintTag}" : LocationTag;
 
         [JsonIgnore]
-        public string IdeaNumber => $"Idea #{FriendlyId:D5}";
+        public string EpicNumber => $"Epic #{FriendlyId:D5}";
         [JsonIgnore]
         public string StoryNumber => $"Story #{FriendlyId:D5}";
         [JsonIgnore]
@@ -206,7 +226,7 @@ namespace Sleipnir.App.Models
             "Overhaul" => "🏗️ Overhaul",
             "Alteration" => "⚙️ Alteration",
             "Story" => "📘 Story",
-            "Idea" => "💡 Idea",
+            "Epic" => "💡 Epic",
             _ => $"📋 {Type}"
         };
 
@@ -248,7 +268,7 @@ namespace Sleipnir.App.Models
         {
             get
             {
-                if (Type != "Idea" && Type != "Story") return false;
+                if (Type != "Epic" && Type != "Story") return false;
                 if (Children.Count == 0) return true;
                 return Children.All(c => c.Status == "Finished");
             }
