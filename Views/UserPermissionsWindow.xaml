@@ -60,7 +60,14 @@
                     </Border>
                     
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding FullName}" FontSize="18" FontWeight="Bold" Foreground="White"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding FullName}" FontSize="18" FontWeight="Bold" Foreground="White"/>
+                            <Border Background="#7C4DFF" Width="20" Height="20" CornerRadius="10" Margin="10,0,0,0" 
+                                    Visibility="{Binding IsOriginalAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    ToolTip="Root Superuser">
+                                <TextBlock Text="👑" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,1"/>
+                            </Border>
+                        </StackPanel>
                         <TextBlock Text="{Binding Username}" FontSize="12" Foreground="#8B949E"/>
                     </StackPanel>
                 </Grid>
@@ -82,8 +89,20 @@
                 <!-- Granular Permissions -->
                 <TextBlock Text="GRANULAR AREA ACCESS" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,15"/>
                 
-                <Border Background="#1C1F30" CornerRadius="8" Padding="15" Margin="0,0,0,25"
-                        IsEnabled="{Binding IsSuperuser, Converter={StaticResource BooleanInverseConverter}}">
+                <Border Background="#1C1F30" CornerRadius="8" Padding="15" Margin="0,0,0,25">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="IsEnabled" Value="True"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSuperuser}" Value="True">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsOriginalAdmin}" Value="True">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <StackPanel>
                         <CheckBox IsChecked="{Binding CanAccessBacklog}" Content="Backlog &amp; Board" Foreground="White" Margin="0,0,0,12"/>
                         <CheckBox IsChecked="{Binding CanAccessPipeline}" Content="Pipeline (Stories)" Foreground="White" Margin="0,0,0,12"/>
@@ -96,8 +115,20 @@
                 <TextBlock Text="PROJECT ACCESS" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,15"
                            Visibility="{Binding IsSuperuser, Converter={StaticResource BooleanToVisibilityInverseConverter}}"/>
 
-                <Border Background="#1C1F30" CornerRadius="8" Padding="15" Margin="0,0,0,25"
-                        Visibility="{Binding IsSuperuser, Converter={StaticResource BooleanToVisibilityInverseConverter}}">
+                <Border Background="#1C1F30" CornerRadius="8" Padding="15" Margin="0,0,0,25">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSuperuser}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsOriginalAdmin}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto">
                         <ItemsControl ItemsSource="{Binding ViewModel.Projects, RelativeSource={RelativeSource AncestorType=Window}}">
                             <ItemsControl.ItemsPanel>
