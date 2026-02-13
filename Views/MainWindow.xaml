@@ -34,6 +34,8 @@
         <utils:PasswordMaskConverter x:Key="PasswordMaskConverter"/>
         <utils:StringContainsMultiConverter x:Key="StringContainsMultiConverter"/>
         <utils:MultiSelectionConverter x:Key="MultiSelectionConverter"/>
+        <utils:AssigneeToIconConverter x:Key="AssigneeToIconConverter"/>
+        <utils:BooleanToStringConverter x:Key="BooleanToStringConverter"/>
         
         <DataTemplate x:Key="IssueCardTemplate">
             <Border Margin="0,0,0,12" Background="#1C1F30" Padding="15">
@@ -44,8 +46,67 @@
                 </Border.InputBindings>
                 <Border.Style>
                     <Style TargetType="Border" BasedOn="{StaticResource ModernCard}">
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="BorderBrush" Value="Transparent"/>
                         <EventSetter Event="PreviewMouseLeftButtonDown" Handler="IssueCard_PreviewMouseLeftButtonDown"/>
                         <EventSetter Event="MouseMove" Handler="IssueCard_MouseMove"/>
+                        <Style.Triggers>
+                            <!-- When collapsed, show priority-colored border -->
+                            <DataTrigger Binding="{Binding DataContext.AreCardsCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                <Setter Property="BorderThickness" Value="2,0,0,0"/>
+                            </DataTrigger>
+                            
+                            <!-- Priority colors for collapsed state -->
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding DataContext.AreCardsCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                    <Condition Binding="{Binding Priority}" Value="Critical"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="BorderBrush" Value="#FF4444"/>
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding DataContext.AreCardsCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                    <Condition Binding="{Binding Priority}" Value="Very High"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="BorderBrush" Value="#FF8800"/>
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding DataContext.AreCardsCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                    <Condition Binding="{Binding Priority}" Value="High"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="BorderBrush" Value="#FFEE00"/>
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding DataContext.AreCardsCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                    <Condition Binding="{Binding Priority}" Value="Neutral"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="BorderBrush" Value="#FFFFFF"/>
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding DataContext.AreCardsCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                    <Condition Binding="{Binding Priority}" Value="Low"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="BorderBrush" Value="#88CCFF"/>
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding DataContext.AreCardsCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                    <Condition Binding="{Binding Priority}" Value="Very Low"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="BorderBrush" Value="#4488FF"/>
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding DataContext.AreCardsCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                    <Condition Binding="{Binding Priority}" Value="Nice to Have"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="BorderBrush" Value="#00CED1"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
                     </Style>
                 </Border.Style>
                 <Grid>
@@ -53,42 +114,64 @@
                     <StackPanel x:Name="StandardLayout">
                         <Grid>
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             
-                            <StackPanel Grid.Column="0">
+                            <!-- Peek Button (only visible when collapsed) -->
+                            <Button x:Name="PeekButton" Grid.Column="0" Width="20" Height="20" Margin="0,0,5,0" 
+                                    Style="{StaticResource WindowControlButton}" Padding="0" VerticalAlignment="Top"
+                                    PreviewMouseDown="PeekButton_MouseDown" PreviewMouseUp="PeekButton_MouseUp"
+                                    ToolTip="Hold to peek">
+                                <Button.Visibility>
+                                    <Binding Path="DataContext.AreCardsCollapsed" RelativeSource="{RelativeSource AncestorType=Window}" 
+                                             Converter="{StaticResource BooleanToVisibilityConverter}"/>
+                                </Button.Visibility>
+                                <iconPacks:PackIconMaterial Kind="Eye" Width="12" Height="12" Foreground="#7C4DFF"/>
+                            </Button>
+                            
+                            <StackPanel Grid.Column="1">
+                                <!-- Type badge (hidden when collapsed) -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DataContext.AreCardsCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
                                     <TextBlock Text="📋" Foreground="#4D7CFF" FontSize="14" Margin="0,0,5,0" VerticalAlignment="Center"/>
                                     <Border BorderBrush="#4D7CFF" BorderThickness="1" CornerRadius="2" Padding="4,1">
                                         <TextBlock Text="ISSUE" Foreground="#4D7CFF" FontSize="10" FontWeight="Bold"/>
                                     </Border>
                                 </StackPanel>
                                 
-                                <TextBlock Text="{Binding TypeTag}" FontSize="11" Foreground="#FFD740" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                                <TextBlock Text="{Binding PriorityTag}" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,15">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="#8B949E"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Priority}" Value="Critical"><Setter Property="Foreground" Value="#FF4444"/></DataTrigger>
-                                                <DataTrigger Binding="{Binding Priority}" Value="Very High"><Setter Property="Foreground" Value="#FF8800"/></DataTrigger>
-                                                <DataTrigger Binding="{Binding Priority}" Value="High"><Setter Property="Foreground" Value="#FFEE00"/></DataTrigger>
-                                                <DataTrigger Binding="{Binding Priority}" Value="Neutral"><Setter Property="Foreground" Value="#FFFFFF"/></DataTrigger>
-                                                <DataTrigger Binding="{Binding Priority}" Value="Low"><Setter Property="Foreground" Value="#88CCFF"/></DataTrigger>
-                                                <DataTrigger Binding="{Binding Priority}" Value="Very Low"><Setter Property="Foreground" Value="#4488FF"/></DataTrigger>
-                                                <DataTrigger Binding="{Binding Priority}" Value="Nice to Have"><Setter Property="Foreground" Value="#00CED1"/></DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-
+                                <!-- Title (smaller and not bold when collapsed) -->
                                 <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" 
                                          LostFocus="IssueTitle_LostFocus"
                                          KeyDown="IssueTitle_KeyDown"
                                          Background="Transparent" BorderThickness="0" Foreground="White" 
-                                         FontSize="14" FontWeight="Bold" Margin="0,0,0,10" Padding="0"
+                                         Margin="0,0,0,10" Padding="0"
                                          TextWrapping="Wrap" AcceptsReturn="False">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="FontSize" Value="14"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="ToolTip" Value="{x:Null}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DataContext.AreCardsCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                    <Setter Property="FontSize" Value="11"/>
+                                                    <Setter Property="FontWeight" Value="Normal"/>
+                                                    <Setter Property="Margin" Value="0"/>
+                                                    <Setter Property="ToolTip" Value="{Binding Description}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
                                     <TextBox.InputBindings>
                                         <MouseBinding MouseAction="LeftDoubleClick" 
                                                       Command="{Binding DataContext.OpenIssueDetailCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
@@ -96,26 +179,88 @@
                                     </TextBox.InputBindings>
                                 </TextBox>
                                 
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                    <TextBlock Text="👤" Foreground="#8B949E" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding ResponsibleUsers}" FontSize="11" Foreground="#E0E0E0" VerticalAlignment="Center"/>
+                                <!-- Collapsible Details -->
+                                <StackPanel x:Name="CollapsibleDetails">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DataContext.AreCardsCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    
+                                    <TextBlock Text="{Binding TypeTag}" FontSize="11" Foreground="#FFD740" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                    <TextBlock Text="{Binding PriorityTag}" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,15">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#8B949E"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Priority}" Value="Critical"><Setter Property="Foreground" Value="#FF4444"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Priority}" Value="Very High"><Setter Property="Foreground" Value="#FF8800"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Priority}" Value="High"><Setter Property="Foreground" Value="#FFEE00"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Priority}" Value="Neutral"><Setter Property="Foreground" Value="#FFFFFF"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Priority}" Value="Low"><Setter Property="Foreground" Value="#88CCFF"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Priority}" Value="Very Low"><Setter Property="Foreground" Value="#4488FF"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Priority}" Value="Nice to Have"><Setter Property="Foreground" Value="#00CED1"/></DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <ContentControl Margin="0,0,0,10">
+                                        <ContentControl.Content>
+                                            <MultiBinding Converter="{StaticResource AssigneeToIconConverter}">
+                                                <Binding Path="ResponsibleUsers"/>
+                                                <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                            </MultiBinding>
+                                        </ContentControl.Content>
+                                    </ContentControl>
+                                    
+                                    <TextBlock Text="{Binding CreatedAt, StringFormat='{}created {0:dd.MM.yyyy}'}" 
+                                               FontSize="9" Foreground="#8B949E" Opacity="0.6"/>
                                 </StackPanel>
-                                
-                                <TextBlock Text="{Binding CreatedAt, StringFormat='{}created {0:dd.MM.yyyy}'}" 
-                                           FontSize="9" Foreground="#8B949E" Opacity="0.6"/>
                             </StackPanel>
                             
-                            <StackPanel Grid.Column="1" HorizontalAlignment="Right">
-                                <Grid Margin="0,0,0,10" HorizontalAlignment="Right">
-                                      <ToggleButton x:Name="PlanToggle" Style="{StaticResource SidebarToggleButton}" Padding="0" Height="Auto"
-                                                    Command="{Binding DataContext.SetPlannedIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    CommandParameter="{Binding}">
-                                          <Border Background="#3D7C4DFF" Padding="6,3" CornerRadius="4">
-                                              <TextBlock Text="PLAN" FontSize="10" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
-                                          </Border>
-                                      </ToggleButton>
-                                      <Popup IsOpen="{Binding IsChecked, ElementName=PlanToggle}" StaysOpen="False" Placement="Bottom" PlacementTarget="{Binding ElementName=PlanToggle}" AllowsTransparency="True">
-                                          <Border Background="#1A1D2E" BorderBrush="#30363D" BorderThickness="1" CornerRadius="8" Width="250" MaxHeight="300" Margin="0,5,0,0">
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                                <ToggleButton x:Name="PlanToggle" Style="{StaticResource SidebarToggleButton}" Padding="0" Height="Auto" 
+                                              HorizontalAlignment="Right"
+                                              Command="{Binding DataContext.SetPlannedIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                              CommandParameter="{Binding}">
+                                    <Border Background="#3D7C4DFF" Padding="6,3" CornerRadius="4">
+                                        <TextBlock Text="PLAN" FontSize="10" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
+                                    </Border>
+                                </ToggleButton>
+
+                                <!-- Action Buttons -->
+                                <StackPanel Margin="0,8,0,0">
+                                    <Button Style="{StaticResource SidebarButton}" 
+                                            Padding="6,3" Height="Auto" HorizontalAlignment="Right"
+                                            Command="{Binding DataContext.CopyIssueToClipboardCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip="Copy Title // Description">
+                                        <StackPanel Orientation="Horizontal">
+                                            <iconPacks:PackIconMaterial Kind="ContentCopy" Width="10" Height="10" Margin="0,0,4,0" Foreground="#88CCFF"/>
+                                            <TextBlock Text="COPY" FontSize="10" FontWeight="Bold" Foreground="#88CCFF"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button Style="{StaticResource SidebarButton}" 
+                                            Margin="0,5,0,0" Padding="6,3" Height="Auto" HorizontalAlignment="Right"
+                                            Command="{Binding DataContext.ShowHierarchyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip="Show Graphic Hierarchy">
+                                        <StackPanel Orientation="Horizontal">
+                                            <iconPacks:PackIconMaterial Kind="Sitemap" Width="10" Height="10" Margin="0,0,4,0" Foreground="#7C4DFF"/>
+                                            <TextBlock Text="GRAPH" FontSize="10" FontWeight="Bold" Foreground="#7C4DFF"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+
+                                <Popup IsOpen="{Binding IsChecked, ElementName=PlanToggle}" StaysOpen="False" Placement="Bottom" PlacementTarget="{Binding ElementName=PlanToggle}" AllowsTransparency="True">
+                                    <Border Background="#1A1D2E" BorderBrush="#30363D" BorderThickness="1" CornerRadius="8" Width="250" MaxHeight="300" Margin="0,5,0,0">
                                               <ScrollViewer Margin="5">
                                                   <ItemsControl ItemsSource="{Binding DataContext.Sprints, RelativeSource={RelativeSource AncestorType=Window}}">
                                                       <ItemsControl.ItemTemplate>
@@ -134,22 +279,20 @@
                                               </ScrollViewer>
                                           </Border>
                                       </Popup>
-                                </Grid>
-                                
-                                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top">
-                                    <TextBlock Text="{Binding IssueNumber}" Foreground="#8B949E" FontSize="10" FontWeight="Bold" Margin="0,0,0,2"/>
-                                    <StackPanel Visibility="{Binding ParentStoryNumber, Converter={StaticResource NullToVisibilityConverter}}">
-                                        <TextBlock Text="{Binding ParentStoryNumber}" Foreground="#FF5252" FontSize="10" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding ParentTitle}" Foreground="#FF5252" FontSize="9" MaxWidth="150" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
-                                    <StackPanel Visibility="{Binding ParentEpicNumber, Converter={StaticResource NullToVisibilityConverter}}">
-                                        <TextBlock Text="{Binding ParentEpicNumber}" Foreground="#FFD740" FontSize="10" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding ParentTitle}" Foreground="#FFD740" FontSize="9" MaxWidth="150" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
                                 </StackPanel>
-                                <TextBlock Text="{Binding AgeString}" FontSize="10" Foreground="#8B949E" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,20,0,0" Opacity="0.8"/>
+                            </Grid>
+                            
+                            <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top">
+                                <TextBlock Text="{Binding IssueNumber}" Foreground="#8B949E" FontSize="10" FontWeight="Bold" Margin="0,0,0,2"/>
+                                <StackPanel Visibility="{Binding ParentStoryNumber, Converter={StaticResource NullToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding ParentStoryNumber}" Foreground="#FF5252" FontSize="10" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding ParentTitle}" Foreground="#FF5252" FontSize="9" MaxWidth="150" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding ParentEpicNumber, Converter={StaticResource NullToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding ParentEpicNumber}" Foreground="#FFD740" FontSize="10" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding ParentTitle}" Foreground="#FFD740" FontSize="9" MaxWidth="150" TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
-                        </Grid>
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- Pipeline Story Layout -->
@@ -178,14 +321,20 @@
                                  LostFocus="IssueTitle_LostFocus" KeyDown="IssueTitle_KeyDown"
                                  Background="Transparent" BorderThickness="0" Foreground="White" 
                                  FontSize="16" FontWeight="Bold" Margin="0,15,0,10" Padding="0" TextWrapping="Wrap" AcceptsReturn="False"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                            <TextBlock Text="{Binding IssueCount}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="12"/>
-                            <TextBlock Text=" linked issues" Foreground="#8B949E" FontSize="12" Margin="5,0,0,0"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                            <Button Command="{Binding DataContext.AddChildIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                    CommandParameter="{Binding}" Style="{StaticResource SidebarButton}" Padding="0" Margin="0,5,15,10">
+                                <TextBlock Text="+ Issue" FontSize="11" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
+                            </Button>
+                            
+                            <Button Command="{Binding DataContext.ShowHierarchyCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                    CommandParameter="{Binding}" Style="{StaticResource SidebarButton}" Padding="0" Margin="0,5,0,10">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterial Kind="Sitemap" Width="11" Height="11" Margin="0,0,4,0" Foreground="#7C4DFF"/>
+                                    <TextBlock Text="GRAPH" FontSize="11" Foreground="#7C4DFF" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
-                        <Button Command="{Binding DataContext.AddChildIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                CommandParameter="{Binding}" Style="{StaticResource SidebarButton}" HorizontalAlignment="Left" Padding="0" Margin="0,5,0,10">
-                            <TextBlock Text="+ Issue" FontSize="11" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
-                        </Button>
                         <Grid Margin="0,10,0,0">
                             <TextBlock Text="{Binding CreatedAt, StringFormat='{}created {0:dd.MM.yyyy}'}" FontSize="9" Foreground="#8B949E" VerticalAlignment="Bottom" Opacity="0.6"/>
                             <TextBlock Text="{Binding AgeString}" FontSize="9" Foreground="#8B949E" HorizontalAlignment="Right" VerticalAlignment="Bottom" Opacity="0.6"/>
@@ -207,14 +356,20 @@
                                  LostFocus="IssueTitle_LostFocus" KeyDown="IssueTitle_KeyDown"
                                  Background="Transparent" BorderThickness="0" Foreground="White" 
                                  FontSize="16" FontWeight="Bold" Margin="0,15,0,10" Padding="0" TextWrapping="Wrap" AcceptsReturn="False"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                            <TextBlock Text="{Binding StoryCount}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="12"/>
-                            <TextBlock Text=" linked stories" Foreground="#8B949E" FontSize="12" Margin="5,0,0,0"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                            <Button Command="{Binding DataContext.AddStoryCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                    CommandParameter="{Binding}" Style="{StaticResource SidebarButton}" Padding="0" Margin="0,5,15,10">
+                                <TextBlock Text="+ Story" FontSize="11" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
+                            </Button>
+
+                            <Button Command="{Binding DataContext.ShowHierarchyCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                    CommandParameter="{Binding}" Style="{StaticResource SidebarButton}" Padding="0" Margin="0,5,0,10">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterial Kind="Sitemap" Width="11" Height="11" Margin="0,0,4,0" Foreground="#7C4DFF"/>
+                                    <TextBlock Text="GRAPH" FontSize="11" Foreground="#7C4DFF" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
-                        <Button Command="{Binding DataContext.AddStoryCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                CommandParameter="{Binding}" Style="{StaticResource SidebarButton}" HorizontalAlignment="Left" Padding="0" Margin="0,5,0,10">
-                            <TextBlock Text="+ Story" FontSize="11" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
-                        </Button>
                         <Grid Margin="0,10,0,0">
                             <TextBlock Text="{Binding CreatedAt, StringFormat='{}created {0:dd.MM.yyyy}'}" FontSize="9" Foreground="#8B949E" VerticalAlignment="Bottom" Opacity="0.6"/>
                             <TextBlock Text="{Binding AgeString}" FontSize="9" Foreground="#8B949E" HorizontalAlignment="Right" VerticalAlignment="Bottom" Opacity="0.6"/>
@@ -519,6 +674,24 @@
                     </StackPanel>
                     
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                         <!-- Collapse/Expand Toggle -->
+                         <Button Command="{Binding ToggleCardsCollapseCommand}" Style="{StaticResource WindowControlButton}" 
+                                 Width="32" Height="32" Padding="0" Margin="0,0,10,0"
+                                 ToolTip="{Binding AreCardsCollapsed, Converter={StaticResource BooleanToStringConverter}, ConverterParameter='Expand All|Collapse All'}">
+                             <iconPacks:PackIconMaterial Width="16" Height="16">
+                                 <iconPacks:PackIconMaterial.Style>
+                                     <Style TargetType="iconPacks:PackIconMaterial">
+                                         <Setter Property="Kind" Value="UnfoldMoreHorizontal"/>
+                                         <Style.Triggers>
+                                             <DataTrigger Binding="{Binding AreCardsCollapsed}" Value="True">
+                                                 <Setter Property="Kind" Value="UnfoldLessHorizontal"/>
+                                             </DataTrigger>
+                                         </Style.Triggers>
+                                     </Style>
+                                 </iconPacks:PackIconMaterial.Style>
+                             </iconPacks:PackIconMaterial>
+                         </Button>
+                         
                          <Button Command="{Binding CompleteSprintCommand}" Margin="0,0,15,0">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource AccentButton}">

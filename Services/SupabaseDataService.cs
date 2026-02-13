@@ -99,19 +99,6 @@ namespace Sleipnir.App.Services
                 .Delete();
         }
 
-        public async Task<List<IssueLog>> GetLogsAsync(Guid issueId)
-        {
-             var response = await _client.From<IssueLog>()
-                .Where(x => x.IssueId == issueId)
-                .Get();
-            return response.Models ?? new List<IssueLog>();
-        }
-
-        public async Task AddLogAsync(IssueLog log)
-        {
-            await _client.From<IssueLog>().Insert(log);
-        }
-
         public async Task<List<Collaborator>> GetCollaboratorsAsync()
         {
             var response = await _client.From<Collaborator>().Get();
@@ -148,6 +135,20 @@ namespace Sleipnir.App.Services
             await _client.From<AppUser>()
                 .Where(x => x.Id == userId)
                 .Delete();
+        }
+
+        public async Task<List<IssueLog>> GetLogsAsync(Guid issueId)
+        {
+            var response = await _client.From<IssueLog>()
+                .Where(x => x.IssueId == issueId)
+                .Order("timestamp", Postgrest.Constants.Ordering.Descending)
+                .Get();
+            return response.Models ?? new List<IssueLog>();
+        }
+
+        public async Task AddLogAsync(IssueLog log)
+        {
+            await _client.From<IssueLog>().Insert(log);
         }
     }
 }

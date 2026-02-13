@@ -24,17 +24,82 @@ namespace Sleipnir.App.Views
             DataContext = _issue;
             
             _viewModel.LoadPotentialParents(_issue);
+            
+            _issue.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(Issue.ResponsibleUsers))
+                {
+                    UpdateAssigneeDisplay();
+                }
+            };
 
             Loaded += (s, e) => 
             {
                 TitleTextBox.Focus();
                 TitleTextBox.SelectAll();
+                UpdateAssigneeDisplay();
             };
+        }
+
+        private void UpdateAssigneeDisplay()
+        {
+            if (AssigneeIconsPanel == null || _viewModel.Collaborators == null) return;
+
+            var assignedUsers = string.IsNullOrWhiteSpace(_issue.ResponsibleUsers)
+                ? new List<string>()
+                : _issue.ResponsibleUsers.Split(';').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
+
+            AssigneeIconsPanel.Children.Clear();
+
+            if (!assignedUsers.Any())
+            {
+                var defaultIcon = new MahApps.Metro.IconPacks.PackIconMaterial
+                {
+                    Kind = MahApps.Metro.IconPacks.PackIconMaterialKind.Account,
+                    Width = 18,
+                    Height = 18,
+                    Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(139, 148, 158))
+                };
+                AssigneeIconsPanel.Children.Add(defaultIcon);
+                AssigneesToggle.ToolTip = "Assign Responsibles...";
+                return;
+            }
+
+            var names = new List<string>();
+
+            foreach (var userName in assignedUsers)
+            {
+                var collab = _viewModel.Collaborators.FirstOrDefault(c => c.Name == userName);
+                if (collab != null)
+                {
+                    // Try to parse the emoji string as a PackIconMaterialKind
+                    if (Enum.TryParse<MahApps.Metro.IconPacks.PackIconMaterialKind>(collab.Emoji, out var iconKind))
+                    {
+                        var icon = new MahApps.Metro.IconPacks.PackIconMaterial
+                        {
+                            Kind = iconKind,
+                            Width = 18,
+                            Height = 18,
+                            Margin = new Thickness(0, 0, 5, 0)
+                        };
+                        AssigneeIconsPanel.Children.Add(icon);
+                        names.Add(collab.Name);
+                    }
+                }
+            }
+
+            AssigneesToggle.ToolTip = string.Join(", ", names);
         }
 
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private async void ViewLogs_Click(object sender, RoutedEventArgs e)
+        {
+            var logs = await _viewModel.DataService.GetLogsAsync(_issue.Id);
+            ActivityLogWindow.Show(this, logs);
         }
 
         private async void Save_Click(object sender, RoutedEventArgs e)
@@ -98,57 +163,18 @@ namespace Sleipnir.App.Views
 
         private async void Archive_Click(object sender, RoutedEventArgs e)
         {
-            if ((_issue.Type == "Epic" || _issue.Type == "Story") && _issue.Children.Any())
-            {
-                var itemType = _issue.Type == "Epic" ? "stories" : "issues";
-                var result = ActionDialog.Show($"Archive {_issue.Type}", 
-                    $"This {_issue.Type} has linked {itemType}. What do you want to do with them?", 
-                    _issue.Type, "Archive issues", "Unlink issues");
-                
-                if (result == ActionDialog.DialogResultAction.Cancel) return;
-                
-                if (result == ActionDialog.DialogResultAction.Action1)
-                {
-                    foreach(var child in _issue.Children.ToList()) 
-                        await _viewModel.ArchiveIssueCommand.ExecuteAsync(child);
-                }
-                else if (result == ActionDialog.DialogResultAction.Action2)
-                {
-                    foreach(var child in _issue.Children.ToList()) 
-                        await _viewModel.UnlinkIssueCommand.ExecuteAsync(child);
-                }
-                
-                await _viewModel.ArchiveIssueCommand.ExecuteAsync(_issue);
-                Close();
-            }
-            else
-            {
-                await _viewModel.ArchiveIssueCommand.ExecuteAsync(_issue);
-                Close();
-            }
+            // Archive the epic/story - children remain untouched
+            await _viewModel.ArchiveIssueCommand.ExecuteAsync(_issue);
+            Close();
         }
 
         private async void Delete_Click(object sender, RoutedEventArgs e)
         {
             if ((_issue.Type == "Epic" || _issue.Type == "Story") && _issue.Children.Any())
             {
-                var itemType = _issue.Type == "Epic" ? "stories" : "issues";
-                var result = ActionDialog.Show($"Delete {_issue.Type}", 
-                    $"This {_issue.Type} has linked {itemType}. What do you want to do with them?", 
-                    _issue.Type, "Delete issues", "Unlink issues");
-                
-                if (result == ActionDialog.DialogResultAction.Cancel) return;
-
-                if (result == ActionDialog.DialogResultAction.Action1)
-                {
-                    foreach(var child in _issue.Children.ToList()) 
-                        await _viewModel.DeleteIssueDirectAsync(child);
-                }
-                else if (result == ActionDialog.DialogResultAction.Action2)
-                {
-                    foreach(var child in _issue.Children.ToList()) 
-                        await _viewModel.UnlinkIssueCommand.ExecuteAsync(child);
-                }
+                // Automatically unlink all children
+                foreach(var child in _issue.Children.ToList()) 
+                    await _viewModel.UnlinkIssueCommand.ExecuteAsync(child);
                 
                 await _viewModel.DeleteIssueDirectAsync(_issue);
                 Close();
@@ -181,8 +207,9 @@ namespace Sleipnir.App.Views
 
         private void CheckBox_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is CheckBox cb && cb.Content is string username)
+            if (sender is CheckBox cb && cb.DataContext is Collaborator collab)
             {
+                var username = collab.Name;
                 var users = string.IsNullOrWhiteSpace(_issue.ResponsibleUsers) 
                     ? new List<string>() 
                     : _issue.ResponsibleUsers.Split(';').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();

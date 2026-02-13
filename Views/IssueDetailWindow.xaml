@@ -5,8 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Sleipnir.App.Views"
         xmlns:utils="clr-namespace:Sleipnir.App.Utils"
+        xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         mc:Ignorable="d"
-        Title="Sleipnir | Issue Details" Height="600" Width="800"
+        Title="Sleipnir | Issue Details" Height="650" Width="900"
         Icon="/Resources/sleipnir.ico"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
@@ -323,10 +324,7 @@
                     <TextBlock Text="ASSIGNEES" FontSize="11" FontWeight="Bold" Foreground="#7C4DFF" Margin="0,0,0,8"/>
                     <Grid Margin="0,0,0,25">
                         <ToggleButton x:Name="AssigneesToggle" Style="{StaticResource SidebarToggleButton}" Padding="15,10" HorizontalAlignment="Left">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="👤 " Foreground="#8B949E"/>
-                                <TextBlock Text="{Binding ResponsibleUsers, FallbackValue='Assign Responsibles...'}" MaxWidth="300" TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
+                            <StackPanel x:Name="AssigneeIconsPanel" Orientation="Horizontal"/>
                         </ToggleButton>
                         <Popup IsOpen="{Binding IsChecked, ElementName=AssigneesToggle}" StaysOpen="False" Placement="Bottom" PlacementTarget="{Binding ElementName=AssigneesToggle}" AllowsTransparency="True">
                              <Border Background="#1A1D2E" BorderBrush="#30363D" BorderThickness="1" CornerRadius="8" Width="250" MaxHeight="300" Margin="0,5,0,0">
@@ -334,8 +332,7 @@
                                      <ItemsControl ItemsSource="{Binding ViewModel.Collaborators, RelativeSource={RelativeSource AncestorType=Window}}">
                                          <ItemsControl.ItemTemplate>
                                              <DataTemplate>
-                                                 <CheckBox Content="{Binding Name}" 
-                                                           Foreground="White" Margin="0,5"
+                                                 <CheckBox Foreground="White" Margin="0,5"
                                                            Click="CheckBox_Click">
                                                      <CheckBox.IsChecked>
                                                         <MultiBinding Converter="{StaticResource StringContainsMultiConverter}" Mode="OneWay">
@@ -343,6 +340,10 @@
                                                             <Binding Path="Name"/>
                                                         </MultiBinding>
                                                     </CheckBox.IsChecked>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <iconPacks:PackIconMaterial Kind="{Binding Emoji}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center"/>
+                                                    </StackPanel>
                                                  </CheckBox>
                                              </DataTemplate>
                                          </ItemsControl.ItemTemplate>
@@ -510,120 +511,156 @@
         </ScrollViewer>
 
         <!-- Footer -->
-        <Border Grid.Row="2" Background="#0F111A" Padding="20" BorderBrush="#30363D" BorderThickness="0,1,0,0">
-            <Grid>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                     <Button Click="Archive_Click"
-                             Style="{StaticResource SidebarButton}" Width="120" Margin="0,0,10,0">
-                         <StackPanel Orientation="Horizontal">
-                             <TextBlock Text="📁 "/>
-                             <TextBlock Text="Archive"/>
-                         </StackPanel>
-                     </Button>
-                     <Button Click="Delete_Click"
-                             Style="{StaticResource SidebarButton}" Width="120" Margin="0,0,10,0">
-                         <StackPanel Orientation="Horizontal">
-                             <TextBlock Text="✕ " Foreground="#FF5252"/>
-                             <TextBlock Text="Delete" Foreground="#FF5252"/>
-                         </StackPanel>
-                     </Button>
- 
-                      <!-- Link/Unlink Action -->
-                      <Grid Margin="10,0,0,0">
-                          <Grid.Style>
-                              <Style TargetType="Grid">
-                                  <Style.Triggers>
-                                      <DataTrigger Binding="{Binding Type}" Value="Epic"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
-                                  </Style.Triggers>
-                              </Style>
-                          </Grid.Style>
-                          <Button Click="Unlink_Click" Style="{StaticResource SidebarButton}" Width="120"
-                                  Visibility="{Binding ParentFriendlyId, Converter={StaticResource NullToVisibilityConverter}}">
-                              <StackPanel Orientation="Horizontal">
-                                  <TextBlock Text="🔗 " Foreground="#FF5252"/>
-                                  <TextBlock Text="Unlink Epic" Foreground="#FF5252"/>
-                              </StackPanel>
-                          </Button>
+        <Border Grid.Row="2" Background="#0F111A" Padding="15,10" BorderBrush="#30363D" BorderThickness="0,1,0,0">
+            <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <!-- Archive -->
+                <Button Click="Archive_Click" Style="{StaticResource SidebarButton}" Margin="5,5">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📁 "/>
+                        <TextBlock Text="Archive"/>
+                    </StackPanel>
+                </Button>
 
-                          <Grid Visibility="{Binding ParentFriendlyId, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}">
-                              <ToggleButton x:Name="FooterLinkToggle" Style="{StaticResource SidebarToggleButton}" Width="120">
-                                  <StackPanel Orientation="Horizontal">
-                                      <TextBlock Text="🔗 " Foreground="{StaticResource AccentBrush}"/>
-                                      <TextBlock Text="Link Epic" Foreground="{StaticResource AccentBrush}"/>
-                                  </StackPanel>
-                              </ToggleButton>
-                              <Popup IsOpen="{Binding IsChecked, ElementName=FooterLinkToggle}" StaysOpen="False" Placement="Top" PlacementTarget="{Binding ElementName=FooterLinkToggle}" AllowsTransparency="True">
-                                  <Border Background="#1A1D2E" BorderBrush="#30363D" BorderThickness="1" CornerRadius="8" Width="300" MaxHeight="350" Margin="0,0,0,5">
-                                      <Grid>
-                                           <Grid.RowDefinitions>
-                                               <RowDefinition Height="Auto"/>
-                                               <RowDefinition Height="*"/>
-                                           </Grid.RowDefinitions>
-                                            <TextBlock FontSize="10" Foreground="#8B949E" Margin="12,12,12,8" FontWeight="Bold">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Text" Value="Select Parent Story"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Type}" Value="Story">
-                                                                <Setter Property="Text" Value="Select Parent Epic"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                           <ScrollViewer Grid.Row="1" Margin="5">
-                                               <ItemsControl ItemsSource="{Binding ViewModel.PotentialParents, RelativeSource={RelativeSource AncestorType=Window}}">
-                                                   <ItemsControl.ItemTemplate>
-                                                       <DataTemplate>
-                                                           <Button Click="EpicSelected_Click" Style="{StaticResource SidebarButton}" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2">
-                                                               <StackPanel Orientation="Horizontal">
-                                                                   <TextBlock FontSize="12" Opacity="0.9" Margin="0,0,8,0">
-                                                                       <TextBlock.Style>
-                                                                           <Style TargetType="TextBlock">
-                                                                               <Setter Property="Text" Value="📘"/>
-                                                                               <Setter Property="Foreground" Value="#FF5252"/>
-                                                                               <Style.Triggers>
-                                                                                   <DataTrigger Binding="{Binding Type}" Value="Epic">
-                                                                                       <Setter Property="Text" Value="💡"/>
-                                                                                       <Setter Property="Foreground" Value="#FFD740"/>
-                                                                                   </DataTrigger>
-                                                                               </Style.Triggers>
-                                                                           </Style>
-                                                                       </TextBlock.Style>
-                                                                   </TextBlock>
-                                                                   <TextBlock Text="{Binding Description}" FontSize="12" TextWrapping="Wrap">
-                                                                       <TextBlock.Style>
-                                                                           <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                                                               <Setter Property="Foreground" Value="White"/>
-                                                                               <Style.Triggers>
-                                                                                   <DataTrigger Binding="{Binding Type}" Value="Epic">
-                                                                                       <Setter Property="Foreground" Value="#FFD740"/>
-                                                                                   </DataTrigger>
-                                                                                   <DataTrigger Binding="{Binding Type}" Value="Story">
-                                                                                       <Setter Property="Foreground" Value="#FF5252"/>
-                                                                                   </DataTrigger>
-                                                                               </Style.Triggers>
-                                                                           </Style>
-                                                                       </TextBlock.Style>
-                                                                   </TextBlock>
-                                                               </StackPanel>
-                                                           </Button>
-                                                       </DataTemplate>
-                                                   </ItemsControl.ItemTemplate>
-                                               </ItemsControl>
-                                           </ScrollViewer>
-                                      </Grid>
-                                  </Border>
-                              </Popup>
-                          </Grid>
-                      </Grid>
-                </StackPanel>
-                
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="Close" Style="{StaticResource SidebarButton}" Click="Close_Click" Margin="0,0,10,0" Width="100"/>
-                    <Button Content="Save Changes" Style="{StaticResource AccentButton}" Click="Save_Click" Width="150"/>
-                </StackPanel>
-            </Grid>
+                <!-- Delete -->
+                <Button Click="Delete_Click" Style="{StaticResource SidebarButton}" Margin="5,5">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="✕ " Foreground="#FF5252"/>
+                        <TextBlock Text="Delete" Foreground="#FF5252"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Copy -->
+                <Button Command="{Binding ViewModel.CopyIssueToClipboardCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="{Binding}"
+                        Style="{StaticResource SidebarButton}" Margin="5,5">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📋 " Foreground="#88CCFF"/>
+                        <TextBlock Text="Copy" Foreground="#88CCFF"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Link/Unlink Action -->
+                <Grid Margin="5,5">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Type}" Value="Epic"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Button Click="Unlink_Click" Style="{StaticResource SidebarButton}"
+                            Visibility="{Binding ParentFriendlyId, Converter={StaticResource NullToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔗 " Foreground="#FF5252"/>
+                            <TextBlock Foreground="#FF5252">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Unlink Story"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Type}" Value="Story"><Setter Property="Text" Value="Unlink Epic"/></DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Button>
+
+                    <Grid Visibility="{Binding ParentFriendlyId, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}">
+                        <ToggleButton x:Name="FooterLinkToggle" Style="{StaticResource SidebarToggleButton}" Width="Auto">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔗 " Foreground="{StaticResource AccentBrush}"/>
+                                <TextBlock Foreground="{StaticResource AccentBrush}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="Link Story"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Type}" Value="Story"><Setter Property="Text" Value="Link Epic"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </ToggleButton>
+                        <Popup IsOpen="{Binding IsChecked, ElementName=FooterLinkToggle}" StaysOpen="False" Placement="Top" PlacementTarget="{Binding ElementName=FooterLinkToggle}" AllowsTransparency="True">
+                            <Border Background="#1A1D2E" BorderBrush="#30363D" BorderThickness="1" CornerRadius="8" Width="300" MaxHeight="350" Margin="0,0,0,5">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock FontSize="10" Foreground="#8B949E" Margin="12,12,12,8" FontWeight="Bold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="Select Parent Story"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Type}" Value="Story">
+                                                        <Setter Property="Text" Value="Select Parent Epic"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <ScrollViewer Grid.Row="1" Margin="5">
+                                        <ItemsControl ItemsSource="{Binding ViewModel.PotentialParents, RelativeSource={RelativeSource AncestorType=Window}}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Click="EpicSelected_Click" Style="{StaticResource SidebarButton}" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock FontSize="12" Opacity="0.9" Margin="0,0,8,0">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Text" Value="📘"/>
+                                                                        <Setter Property="Foreground" Value="#FF5252"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Type}" Value="Epic">
+                                                                                <Setter Property="Text" Value="💡"/>
+                                                                                <Setter Property="Foreground" Value="#FFD740"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                            <TextBlock Text="{Binding Description}" FontSize="12" TextWrapping="Wrap">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                                        <Setter Property="Foreground" Value="White"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Type}" Value="Epic">
+                                                                                <Setter Property="Foreground" Value="#FFD740"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding Type}" Value="Story">
+                                                                                <Setter Property="Foreground" Value="#FF5252"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </Grid>
+
+                <!-- Activity Log -->
+                <Button Content="📋 Activity Log" Style="{StaticResource SidebarButton}" Click="ViewLogs_Click" Margin="5,5"/>
+
+                <!-- Hierarchy -->
+                <Button Content="📊 Hierarchy" Style="{StaticResource SidebarButton}" 
+                        Command="{Binding ViewModel.ShowHierarchyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="{Binding}" Margin="5,5"/>
+
+                <!-- Close -->
+                <Button Content="Close" Style="{StaticResource SidebarButton}" Click="Close_Click" Margin="5,5"/>
+
+                <!-- Save -->
+                <Button Content="Save Changes" Style="{StaticResource AccentButton}" Click="Save_Click" Margin="5,5"/>
+            </WrapPanel>
         </Border>
     </Grid>
 </Window>

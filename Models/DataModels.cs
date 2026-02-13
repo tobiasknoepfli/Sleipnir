@@ -83,6 +83,9 @@ namespace Sleipnir.App.Models
         [Column("avatar_url")]
         public string? AvatarUrl { get; set; }
 
+        [Column("emoji")]
+        public string Emoji { get; set; } = "👤";
+
         public override string ToString() => Name;
     }
 
@@ -281,27 +284,6 @@ namespace Sleipnir.App.Models
         }
     }
 
-    [Table("issue_logs")]
-    public class IssueLog : BaseModel
-    {
-        [PrimaryKey("id", false)]
-        public Guid Id { get; set; } = Guid.NewGuid();
-
-        [Column("issue_id")]
-        public Guid IssueId { get; set; }
-
-        [Column("user_name")]
-        public string UserName { get; set; } = "System";
-
-        [Column("action")]
-        public string Action { get; set; } = string.Empty; // Created, Edited, Status Changed
-
-        [Column("details")]
-        public string Details { get; set; } = string.Empty;
-
-        [Column("timestamp")]
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-    }
     [Table("users")]
     public class AppUser : BaseModel, System.ComponentModel.INotifyPropertyChanged
     {
@@ -322,6 +304,7 @@ namespace Sleipnir.App.Models
         private string _emoji = "Account";
         private bool _isSuperuser;
         private bool _canAutoLogin;
+        private Guid? _lastProjectId;
 
         [JsonIgnore]
         public bool IsPasswordRevealed { get => _isPasswordRevealed; set { _isPasswordRevealed = value; OnPropertyChanged(); } }
@@ -391,6 +374,9 @@ namespace Sleipnir.App.Models
         [Column("can_auto_login")]
         public bool CanAutoLogin { get => _canAutoLogin; set { _canAutoLogin = value; OnPropertyChanged(); } }
 
+        [Column("last_project_id")]
+        public Guid? LastProjectId { get => _lastProjectId; set { _lastProjectId = value; OnPropertyChanged(); } }
+
         [Column("allowed_project_ids")]
         public string AllowedProjectIds { get => _allowedProjectIds; set { _allowedProjectIds = value; OnPropertyChanged(); } }
 
@@ -409,6 +395,63 @@ namespace Sleipnir.App.Models
             if (string.IsNullOrEmpty(AllowedProjectIds)) return false;
             var ids = AllowedProjectIds.Split(';', StringSplitOptions.RemoveEmptyEntries);
             return ids.Contains(projectId.ToString());
+        }
+    }
+
+    [Table("issue_logs")]
+    public class IssueLog : BaseModel
+    {
+        [PrimaryKey("id", false)]
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        [Column("issue_id")]
+        public Guid IssueId { get; set; }
+
+        [Column("timestamp")]
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+        [Column("user_name")]
+        public string UserName { get; set; } = string.Empty;
+
+        [Column("field_changed")]
+        public string FieldChanged { get; set; } = string.Empty;
+
+        [Column("old_value")]
+        public string? OldValue { get; set; }
+
+        [Column("new_value")]
+        public string? NewValue { get; set; }
+
+        [Column("action")]
+        public string Action { get; set; } = string.Empty;
+
+        [Column("details")]
+        public string Details { get; set; } = string.Empty;
+
+        [JsonIgnore]
+        public string FormattedLog 
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(Action))
+                {
+                    return $"{Timestamp:yyyy-MM-dd HH:mm} - {UserName}: {Action} ({Details})";
+                }
+                return $"{Timestamp:yyyy-MM-dd HH:mm} - {UserName}: {FieldChanged} changed from '{OldValue}' to '{NewValue}'";
+            }
+        }
+
+        [JsonIgnore]
+        public string FormattedLogContent 
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(Action))
+                {
+                    return $"{Action} ({Details})";
+                }
+                return $"{FieldChanged} changed from '{OldValue}' to '{NewValue}'";
+            }
         }
     }
 }

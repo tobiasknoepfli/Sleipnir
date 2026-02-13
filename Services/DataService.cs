@@ -62,9 +62,9 @@ namespace Sleipnir.App.Services
             var s1 = new Sprint { ProjectId = p1.Id, Name = "Sprint 1", StartDate = DateTime.Today, EndDate = DateTime.Today.AddDays(14) };
             _sprints.Add(s1);
 
-            var c1 = new Collaborator { Name = "Tobias K.", Email = "tobias@example.com" };
-            var c2 = new Collaborator { Name = "Sarah M.", Email = "sarah@example.com" };
-            var c3 = new Collaborator { Name = "Admin", Email = "admin@example.com" };
+            var c1 = new Collaborator { Name = "Tobias K.", Email = "tobias@example.com", Emoji = "🧑‍💻" };
+            var c2 = new Collaborator { Name = "Sarah M.", Email = "sarah@example.com", Emoji = "👩‍💼" };
+            var c3 = new Collaborator { Name = "Admin", Email = "admin@example.com", Emoji = "⚡" };
             _collaborators.AddRange(new[] { c1, c2, c3 });
 
             _issues.Add(new Issue { 
@@ -142,7 +142,8 @@ namespace Sleipnir.App.Services
                 FirstName = "Super", 
                 LastName = "User", 
                 IsSuperuser = true, 
-                Emoji = "⚡" 
+                Emoji = "⚡",
+                LastProjectId = p1.Id
             });
         }
 

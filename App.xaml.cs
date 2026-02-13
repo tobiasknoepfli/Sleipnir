@@ -91,6 +91,16 @@ namespace Sleipnir.App
             
             var mainWindow = new Sleipnir.App.Views.MainWindow(mainVm);
             this.MainWindow = mainWindow;
+            
+            // Ensure app shuts down when main window closes
+            this.ShutdownMode = ShutdownMode.OnMainWindowClose;
+            
+            // Explicitly shutdown when window is closed
+            mainWindow.Closed += (s, e) => 
+            {
+                Application.Current.Shutdown();
+            };
+            
             mainWindow.Show();
         }
     }

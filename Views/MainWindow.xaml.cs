@@ -106,11 +106,7 @@ namespace Sleipnir.App.Views
             {
                 if (sender is FrameworkElement fe && fe.Tag is string targetStatus)
                 {
-                    if (issue.Status != targetStatus)
-                    {
-                        issue.Status = targetStatus;
-                        await vm.UpdateIssueAsync(issue);
-                    }
+                    await vm.ChangeIssueStatusAsync(issue, targetStatus);
                 }
             }
         }
@@ -150,6 +146,62 @@ namespace Sleipnir.App.Views
                 this.Focus();
                 e.Handled = true;
             }
+        }
+
+        private void PeekButton_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Button btn)
+            {
+                // Find the CollapsibleDetails panel in the same card
+                var border = FindVisualParent<Border>(btn);
+                if (border != null)
+                {
+                    var collapsibleDetails = FindVisualChild<StackPanel>(border, "CollapsibleDetails");
+                    if (collapsibleDetails != null)
+                    {
+                        collapsibleDetails.Visibility = Visibility.Visible;
+                    }
+                }
+            }
+        }
+
+        private void PeekButton_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Button btn)
+            {
+                // Find the CollapsibleDetails panel and hide it again
+                var border = FindVisualParent<Border>(btn);
+                if (border != null)
+                {
+                    var collapsibleDetails = FindVisualChild<StackPanel>(border, "CollapsibleDetails");
+                    if (collapsibleDetails != null && DataContext is MainViewModel vm && vm.AreCardsCollapsed)
+                    {
+                        collapsibleDetails.Visibility = Visibility.Collapsed;
+                    }
+                }
+            }
+        }
+
+        private T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            var parent = VisualTreeHelper.GetParent(child);
+            if (parent == null) return null;
+            if (parent is T tParent) return tParent;
+            return FindVisualParent<T>(parent);
+        }
+
+        private T? FindVisualChild<T>(DependencyObject parent, string name) where T : FrameworkElement
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T tChild && tChild.Name == name)
+                    return tChild;
+                
+                var result = FindVisualChild<T>(child, name);
+                if (result != null) return result;
+            }
+            return null;
         }
     }
 }

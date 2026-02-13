@@ -68,6 +68,7 @@ namespace Sleipnir.App.ViewModels
         private ObservableCollection<AppUser> _allUsers = new();
 
         private readonly IDataService _dataService;
+        public IDataService DataService => _dataService;
         private List<Issue> _allProjectIssues = new();
 
         [ObservableProperty]
@@ -109,10 +110,13 @@ namespace Sleipnir.App.ViewModels
         [ObservableProperty]
         private bool _isArchiveVisible;
 
+        [ObservableProperty]
+        private bool _areCardsCollapsed;
 
         [ObservableProperty]
         private ObservableCollection<Collaborator> _collaborators = new();
-        public List<string> Kinds { get; } = new() { "Bug", "Feature", "Patch", "Overhaul", "Alteration", "Story", "Epic" };
+        public List<string> Kinds { get; } = new() { "Bug", "Feature", "Patch", "Overhaul", "Alteration" };
+        public List<string> AllKinds { get; } = new() { "Bug", "Feature", "Patch", "Overhaul", "Alteration", "Story", "Epic" };
         public List<string> FilterKinds { get; }
 
         public List<string> Priorities { get; } = new() { "Critical", "Very High", "High", "Neutral", "Low", "Very Low", "Nice to Have" };
@@ -457,7 +461,7 @@ namespace Sleipnir.App.ViewModels
         public MainViewModel(IDataService dataService)
         {
             _dataService = dataService;
-            FilterKinds = new List<string> { "All" }.Concat(Kinds).ToList();
+            FilterKinds = new List<string> { "All" }.Concat(AllKinds).ToList();
             FilterPriorities = new List<string> { "All" }.Concat(Priorities).ToList();
             LoadDataCommand = new AsyncRelayCommand(LoadDataAsync);
             CreateProjectCommand = new RelayCommand(OpenProjectModal);
@@ -495,6 +499,7 @@ namespace Sleipnir.App.ViewModels
             CancelProjectModalCommand = new RelayCommand(() => IsProjectModalVisible = false);
             BrowseLogoCommand = new RelayCommand(BrowseLogo);
             ClearLogoCommand = new RelayCommand(() => { NewProjectLogoUrl = ""; if (SelectedProject != null) SelectedProject.LogoData = null; });
+            ShowHierarchyCommand = new RelayCommand<Issue>(ShowHierarchy);
 
             AddStoryCommand = new AsyncRelayCommand<Issue>(AddStoryAsync);
             AddChildIssueCommand = new AsyncRelayCommand<Issue>(AddChildIssueAsync);
@@ -533,6 +538,7 @@ namespace Sleipnir.App.ViewModels
         public IRelayCommand<Issue> OpenIssueDetailCommand { get; }
 
         public IRelayCommand<Issue> SetPlannedIssueCommand { get; }
+        public IRelayCommand<Issue> ShowHierarchyCommand { get; }
 
         public IAsyncRelayCommand<Issue> AddStoryCommand { get; }
         public IAsyncRelayCommand<Issue> AddChildIssueCommand { get; }
@@ -566,16 +572,37 @@ namespace Sleipnir.App.ViewModels
                     }
                 }
                 
-                var collaborators = await _dataService.GetCollaboratorsAsync();
+                // Load all users and convert to collaborators
+                var allUsers = await _dataService.GetUsersAsync();
+                AllUsers.Clear();
                 Collaborators.Clear();
-                foreach (var c in collaborators) Collaborators.Add(c);
+                foreach (var user in allUsers)
+                {
+                    AllUsers.Add(user);
+                    // Convert AppUser to Collaborator for assignee selection
+                    Collaborators.Add(new Collaborator
+                    {
+                        Name = $"{user.FirstName} {user.LastName}".Trim(),
+                        Email = user.Username, // Using username as email placeholder
+                        Emoji = user.Emoji
+                    });
+                }
                 UpdateFilterAssignees();
 
-                if (SelectedProject == null && Projects.Any())
+                // Restore project selection
+                if (Projects.Any())
                 {
-                    SelectedProject = Projects.First();
+                    if (CurrentUser != null && CurrentUser.LastProjectId.HasValue)
+                    {
+                        var lastProject = Projects.FirstOrDefault(p => p.Id == CurrentUser.LastProjectId.Value);
+                        SelectedProject = lastProject ?? Projects.First();
+                    }
+                    else if (SelectedProject == null)
+                    {
+                        SelectedProject = Projects.First();
+                    }
                 }
-                else if (!Projects.Any())
+                else
                 {
                     OpenProjectModal();
                 }
@@ -589,6 +616,31 @@ namespace Sleipnir.App.ViewModels
         partial void OnSelectedProjectChanged(Project? value)
         {
             _ = LoadProjectDataAsync();
+            if (value != null && CurrentUser != null && CurrentUser.LastProjectId != value.Id)
+            {
+                SaveLastProjectSelection(value.Id);
+            }
+        }
+
+        private async void SaveLastProjectSelection(Guid projectId)
+        {
+            if (CurrentUser == null) return;
+            try
+            {
+                CurrentUser.LastProjectId = projectId;
+                await _dataService.UpdateUserAsync(CurrentUser);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving project preference: {ex.Message}");
+                // If the update fails, it's likely due to a missing column in Supabase
+                if (ex.Message.Contains("last_project_id") || ex.Message.Contains("column"))
+                {
+                    await Application.Current.Dispatcher.InvokeAsync(() => {
+                        CustomDialogWindow.Show("Database Update Needed", "Failed to save project preference. You likely need to add the 'last_project_id' column to your 'users' table in Supabase and reload the schema.", CustomDialogWindow.DialogType.Warning);
+                    });
+                }
+            }
         }
 
         partial void OnSelectedCategoryChanged(string value)
@@ -1051,6 +1103,7 @@ namespace Sleipnir.App.ViewModels
                     await _dataService.UpdateIssueAsync(issue);
                     await _dataService.AddLogAsync(new IssueLog { 
                         IssueId = issue.Id, 
+                        UserName = CurrentUser?.FullName ?? "System",
                         Action = "Unassigned", 
                         Details = $"Removed from deleted sprint: {SelectedSprint.Name}" 
                     });
@@ -1070,6 +1123,20 @@ namespace Sleipnir.App.ViewModels
         }
 
         private bool _isDataSyncing;
+
+        public async Task ChangeIssueStatusAsync(Issue? issue, string newStatus)
+        {
+            if (issue == null || issue.Status == newStatus || _isDataSyncing) return;
+
+            var oldStatus = issue.Status;
+            issue.Status = newStatus;
+
+            // Log the change
+            await LogIssueChange(issue.Id, "Status", oldStatus, newStatus);
+
+            // Update in DB
+            await UpdateIssueAsync(issue);
+        }
 
         public async Task UpdateIssueAsync(Issue issue)
         {
@@ -1133,6 +1200,7 @@ namespace Sleipnir.App.ViewModels
                 if (created != null)
                 {
                     _allProjectIssues.Add(created);
+                    await LogIssueChange(created.Id, "Status", null, status);
                     RefreshCategorizedIssues();
                     OpenIssueDetail(created);
                 }
@@ -1174,6 +1242,7 @@ namespace Sleipnir.App.ViewModels
                 if (created != null)
                 {
                     _allProjectIssues.Add(created);
+                    await LogIssueChange(created.Id, "Status", null, "Open");
                     RefreshCategorizedIssues();
                     OpenIssueDetail(created);
                 }
@@ -1210,6 +1279,7 @@ namespace Sleipnir.App.ViewModels
                 if (created != null)
                 {
                     _allProjectIssues.Add(created);
+                    await LogIssueChange(created.Id, "Status", null, "Open");
                     RefreshCategorizedIssues();
                     OpenIssueDetail(created);
                 }
@@ -1234,6 +1304,7 @@ namespace Sleipnir.App.ViewModels
             await _dataService.UpdateIssueAsync(issue);
             await _dataService.AddLogAsync(new IssueLog { 
                 IssueId = issue.Id, 
+                UserName = CurrentUser?.FullName ?? "System",
                 Action = "Planned", 
                 Details = $"Assigned to {sprint.Name}" 
             });
@@ -1280,6 +1351,7 @@ namespace Sleipnir.App.ViewModels
                     await _dataService.UpdateIssueAsync(issue);
                     await _dataService.AddLogAsync(new IssueLog { 
                         IssueId = issue.Id, 
+                        UserName = CurrentUser?.FullName ?? "System",
                         Action = "Rollover", 
                         Details = $"Moved from {SelectedSprint.Name} to {nextSprint.Name} (Unfinished)" 
                     });
@@ -1326,7 +1398,9 @@ namespace Sleipnir.App.ViewModels
                 var allChildren = _allProjectIssues.Where(i => i.ParentIssueId == parentId && i.Type == "Story").ToList();
                 if (allChildren.Count > 0 && allChildren.All(c => c.Status == "Finished"))
                 {
+                    var oldStatus = parentEpic.Status;
                     parentEpic.Status = "Finished";
+                    await LogIssueChange(parentEpic.Id, "Status", oldStatus, "Finished");
                     await _dataService.UpdateIssueAsync(parentEpic);
                 }
             }
@@ -1396,49 +1470,73 @@ namespace Sleipnir.App.ViewModels
             RefreshCategorizedIssues();
         }
 
+        [RelayCommand]
+        private void ToggleCardsCollapse()
+        {
+            AreCardsCollapsed = !AreCardsCollapsed;
+        }
+
+
         private async Task ShowLogsAsync(Issue? issue)
         {
             if (issue == null) return;
             var logs = await _dataService.GetLogsAsync(issue.Id);
-            string logText = string.Join("\n", logs.Select(l => $"[{l.Timestamp:HH:mm}] {l.UserName}: {l.Action} ({l.Details})"));
-            CustomDialogWindow.Show("Timeline", logText);
+            
+            ActivityLogWindow.Show(Application.Current.MainWindow, logs);
+        }
+
+        [RelayCommand]
+        public void CopyIssueToClipboard(Issue? issue)
+        {
+            if (issue == null) return;
+            try
+            {
+                var text = $"{issue.Description} // {issue.LongDescription}";
+                System.Windows.Clipboard.SetText(text);
+                // Optionally show a small info that it was copied
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to copy to clipboard: {ex.Message}");
+            }
+        }
+
+
+        public async Task LogIssueChange(Guid issueId, string fieldChanged, string? oldValue, string? newValue)
+        {
+            try
+            {
+                var log = new IssueLog
+                {
+                    IssueId = issueId,
+                    UserName = CurrentUser?.FullName ?? "System",
+                    FieldChanged = fieldChanged ?? "Status",
+                    OldValue = oldValue ?? "Unknown",
+                    NewValue = newValue ?? "Unknown",
+                    Action = $"{fieldChanged} changed",
+                    Details = $"{oldValue} → {newValue}"
+                };
+                
+                await _dataService.AddLogAsync(log);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Logging failed: {ex.Message}");
+                CustomDialogWindow.Show("Activity Log Error", 
+                    $"The action was performed, but the history entry couldn't be saved: {ex.Message}", 
+                    CustomDialogWindow.DialogType.Error);
+            }
         }
 
         private async Task ArchiveIssueAsync(Issue? issue)
         {
             if (issue == null) return;
 
-            // Epic/Story logic
-            if ((issue.Type == "Epic" || issue.Type == "Story") && issue.Children.Any())
-            {
-                var itemPlural = issue.Type == "Epic" ? "stories" : "backlog issues";
-                var result = CustomDialogWindow.Show(
-                    "Archive Linked Items",
-                    $"This {issue.Type} has linked {itemPlural}. What should happen to them?",
-                    CustomDialogWindow.DialogType.Info,
-                    "Archive All", "Unlink Only", "Cancel");
-
-                if (result == CustomDialogWindow.CustomDialogResult.Cancel) return;
-
-                if (result == CustomDialogWindow.CustomDialogResult.Ok)
-                {
-                    foreach (var child in issue.Children.ToList())
-                    {
-                        child.Status = "Archived";
-                        await _dataService.UpdateIssueAsync(child);
-                    }
-                }
-                else if (result == CustomDialogWindow.CustomDialogResult.No)
-                {
-                    foreach (var child in issue.Children.ToList())
-                    {
-                        child.ParentIssueId = null;
-                        await _dataService.UpdateIssueAsync(child);
-                    }
-                }
-            }
-
+            // When archiving epics/stories, children remain untouched (no unlinking, no archiving)
+            
+            var oldStatus = issue.Status;
             issue.Status = "Archived";
+            await LogIssueChange(issue.Id, "Status", oldStatus, "Archived");
             await _dataService.UpdateIssueAsync(issue);
             RefreshCategorizedIssues();
         }
@@ -1448,33 +1546,13 @@ namespace Sleipnir.App.ViewModels
         {
             if (issue == null) return;
 
-            // Epic/Story logic
+            // Epic/Story logic - automatically unlink all children
             if ((issue.Type == "Epic" || issue.Type == "Story") && issue.Children.Any())
             {
-                var itemPlural = issue.Type == "Epic" ? "stories" : "backlog issues";
-                var result = CustomDialogWindow.Show(
-                    "Delete Linked Items",
-                    $"This {issue.Type} has linked {itemPlural}. What should happen to them?",
-                    CustomDialogWindow.DialogType.Warning,
-                    "Delete All", "Unlink Only", "Cancel");
-
-                if (result == CustomDialogWindow.CustomDialogResult.Cancel) return;
-
-                if (result == CustomDialogWindow.CustomDialogResult.Ok)
+                foreach (var child in issue.Children.ToList())
                 {
-                    foreach (var child in issue.Children.ToList())
-                    {
-                        await _dataService.DeleteIssueAsync(child.Id);
-                        _allProjectIssues.Remove(child);
-                    }
-                }
-                else if (result == CustomDialogWindow.CustomDialogResult.No)
-                {
-                    foreach (var child in issue.Children.ToList())
-                    {
-                        child.ParentIssueId = null;
-                        await _dataService.UpdateIssueAsync(child);
-                    }
+                    child.ParentIssueId = null;
+                    await _dataService.UpdateIssueAsync(child);
                 }
             }
             else
@@ -1501,9 +1579,19 @@ namespace Sleipnir.App.ViewModels
         private async Task RestoreIssueAsync(Issue? issue)
         {
             if (issue == null) return;
+            var oldStatus = issue.Status;
             issue.Status = "Open"; // Restore to open state
+            await LogIssueChange(issue.Id, "Status", oldStatus, "Open");
             await _dataService.UpdateIssueAsync(issue);
             RefreshCategorizedIssues();
+        }
+
+        private void ShowHierarchy(Issue? issue)
+        {
+            if (issue == null) return;
+            var window = new HierarchyWindow(issue, _allProjectIssues);
+            window.Owner = Application.Current.MainWindow;
+            window.Show();
         }
     }
 }
